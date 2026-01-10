@@ -32,11 +32,11 @@ class Settings(BaseSettings):
         description="Ollama model for embeddings (1024 dimensions)"
     )
     GENERATION_MODEL: str = Field(
-        default="llama3.2",
+        default="qwen3:30b",
         description="Ollama model for text generation"
     )
     GRADING_MODEL: str = Field(
-        default="llama3.2",
+        default="qwen3:30b",
         description="Ollama model for grading tasks (can use smaller model)"
     )
 
