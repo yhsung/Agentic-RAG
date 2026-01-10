@@ -239,7 +239,7 @@ def web_search(state: GraphState) -> dict:
     Perform web search to find additional information.
 
     This node performs a web search when local documents are insufficient
-    to answer the question.
+    to answer the question. Uses Tavily API (primary) or DuckDuckGo (fallback).
 
     Args:
         state: Current graph state containing question
@@ -247,9 +247,8 @@ def web_search(state: GraphState) -> dict:
     Returns:
         Dictionary with updated documents and web_search fields
 
-    Note:
-        This is a placeholder for Phase 6. Currently returns empty documents.
-        Will be implemented with WebSearcher in Phase 6.
+    Raises:
+        Exception: If web search fails and no fallback is available
 
     Example:
         >>> state = {
@@ -258,18 +257,57 @@ def web_search(state: GraphState) -> dict:
         ... }
         >>> result = web_search(state)
         >>> print(len(result["documents"]))
-        5
+        3
     """
     logger.info("Node: web_search")
-    logger.info("Web search not yet implemented - Phase 6")
-    logger.warning("Returning empty documents")
+    logger.debug(f"Searching web for: {state['question']}")
 
-    # Placeholder: Return empty documents
-    # Will implement with WebSearcher in Phase 6
-    return {
-        "documents": [],
-        "web_search": "Yes"
-    }
+    try:
+        # Import WebSearcher
+        from src.agents.web_searcher import WebSearcher
+
+        # Initialize searcher
+        searcher = WebSearcher()
+
+        # Check if web search is available
+        if not searcher.is_available():
+            logger.warning("Web search not available - no search engines configured")
+            logger.warning("To enable web search:")
+            logger.warning("  1. Set TAVILY_API_KEY in .env file for Tavily")
+            logger.warning("  2. Or install duckduckgo-search: pip install duckduckgo-search")
+            return {
+                "documents": [],
+                "web_search": "No"
+            }
+
+        # Perform web search
+        documents = searcher.search(
+            question=state["question"],
+            max_results=settings.WEB_SEARCH_MAX_RESULTS
+        )
+
+        logger.info(f"Web search returned {len(documents)} documents")
+
+        # Log search results for debugging
+        for i, doc in enumerate(documents):
+            title = doc.metadata.get("title", "No title")
+            source = doc.metadata.get("source", "Unknown")
+            engine = doc.metadata.get("search_engine", "Unknown")
+            logger.debug(f"  Result {i+1}: {title} ({engine})")
+            logger.debug(f"    Source: {source}")
+
+        return {
+            "documents": documents,
+            "web_search": "Yes"
+        }
+
+    except Exception as e:
+        logger.error(f"Web search failed: {e}")
+        # Return empty documents on failure - system can degrade gracefully
+        return {
+            "documents": [],
+            "web_search": "No"
+        }
 
 
 def check_hallucination(state: GraphState) -> dict:

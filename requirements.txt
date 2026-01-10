@@ -3,9 +3,10 @@ langgraph==0.2.45
 langchain==0.3.9
 langchain-core==0.3.21
 langchain-community==0.3.8
+langchain-ollama>=0.1.0
 
 # LLM & Embeddings
-ollama==0.4.5
+ollama>=0.4.5
 
 # Vector Store
 chromadb==0.5.23

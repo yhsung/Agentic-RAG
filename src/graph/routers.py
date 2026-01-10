@@ -105,28 +105,49 @@ def decide_to_web_search(state: GraphState) -> Literal["web_search", "generate"]
     This router function evaluates whether we have enough relevant
     documents or should fall back to web search.
 
-    NOTE: This is a placeholder for Phase 6. Currently always routes
-    to generate since web search is not yet implemented.
+    Routing Logic:
+    - All or most documents relevant → generate
+    - Few or no documents relevant → web_search
+    - Threshold: < 50% relevant documents triggers web search
 
     Args:
         state: Current graph state containing relevance_scores
 
     Returns:
-        "web_search" or "generate"
+        "web_search" if insufficient relevant docs, "generate" otherwise
 
     Example:
-        >>> state = {"relevance_scores": ["yes"], ...}
+        >>> state = {"relevance_scores": ["yes", "yes", "no"], ...}
         >>> next_node = decide_to_web_search(state)
         >>> print(next_node)
         "generate"
+
+        >>> state = {"relevance_scores": ["no", "no", "no"], ...}
+        >>> next_node = decide_to_web_search(state)
+        >>> print(next_node)
+        "web_search"
     """
     logger.info("Router: decide_to_web_search")
-    logger.info("Web search not yet implemented - Phase 6")
-    logger.warning("Routing to generate")
 
-    # Placeholder: Always route to generate
-    # Will implement proper logic in Phase 6
-    return "generate"
+    if not state["relevance_scores"]:
+        logger.warning("No relevance scores - defaulting to web search")
+        return "web_search"
+
+    # Count relevant documents
+    relevant_count = sum(1 for score in state["relevance_scores"] if score == "yes")
+    total_count = len(state["relevance_scores"])
+    relevance_ratio = relevant_count / total_count if total_count > 0 else 0
+
+    logger.info(f"Relevant documents: {relevant_count}/{total_count} ({relevance_ratio:.1%})")
+
+    # Decision: Web search if less than 50% of documents are relevant
+    threshold = 0.5
+    if relevance_ratio < threshold:
+        logger.info(f"Decision: Relevance ratio {relevance_ratio:.1%} < {threshold:.1%} - trigger web search")
+        return "web_search"
+    else:
+        logger.info(f"Decision: Relevance ratio {relevance_ratio:.1%} >= {threshold:.1%} - generate from local docs")
+        return "generate"
 
 
 def check_hallucination_and_usefulness(state: GraphState) -> Literal["generate", "transform_query", "end"]:
