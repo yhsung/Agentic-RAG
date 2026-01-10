@@ -11,8 +11,20 @@ from typing import Dict, Any, List
 from langgraph.graph import StateGraph, END
 
 from src.graph.state import GraphState
-from src.graph.nodes import retrieve, generate, grade_documents, transform_query
-from src.graph.routers import decide_to_generate
+from src.graph.nodes import (
+    retrieve,
+    generate,
+    grade_documents,
+    transform_query,
+    web_search,
+    check_hallucination,
+    check_usefulness
+)
+from src.graph.routers import (
+    decide_to_generate,
+    decide_to_web_search,
+    check_hallucination_and_usefulness
+)
 from config.settings import settings
 
 
@@ -23,9 +35,12 @@ class AgenticRAGWorkflow:
     """
     Manages the LangGraph StateGraph for the Agentic RAG system.
 
-    This class builds, compiles, and provides methods to run the
-    agentic RAG workflow. In Phase 3, this is a simple retrieve → generate
-    flow. Agentic features will be added in later phases.
+    This class builds, compiles, and provides methods to run the complete
+    agentic RAG workflow with all 4 self-correction mechanisms:
+    1. Document relevance grading
+    2. Query rewriting
+    3. Web search fallback
+    4. Hallucination and usefulness checks
 
     Attributes:
         workflow: The compiled LangGraph StateGraph
@@ -53,42 +68,55 @@ class AgenticRAGWorkflow:
 
     def _build_workflow(self) -> StateGraph:
         """
-        Build the LangGraph StateGraph.
+        Build the complete LangGraph StateGraph with all agentic features.
 
-        In Phase 5, this creates a flow with document grading and query rewriting:
-        START → retrieve → grade_documents → [conditional] → generate → END
-                                          ↓ (if no relevant & retries left)
-                                    transform_query → retrieve (loop)
+        Complete workflow flow:
+        START → retrieve → grade_documents
+                              ↓ (decide_to_generate)
+        ┌─────────────────────┼─────────────────────┐
+        ↓                     ↓                     ↓
+   transform_query      web_search             generate
+        ↓                     ↓                     ↓
+     retrieve            generate          check_hallucination
+                                                   ↓
+                                            check_usefulness
+                                                   ↓
+                              check_hallucination_and_usefulness
+                                                   ↓
+                    ┌───────────────┼───────────────┐
+                    ↓               ↓               ↓
+                regenerate    transform_query      END
 
-        The conditional edge routes based on document relevance and retry count:
-        - If any relevant docs → generate
-        - If no relevant docs AND retries left → transform_query → retrieve
-        - If no relevant docs AND no retries left → end
+        Routing decisions:
+        - After grade_documents: decide_to_generate routes based on relevance
+        - After generate: check_hallucination_and_usefulness routes based on quality
+        - Multiple loops: query rewriting (max 3), regeneration (unlimited)
 
         Returns:
             Compiled StateGraph ready for execution
         """
-        logger.info("Building workflow graph")
+        logger.info("Building complete agentic RAG workflow graph")
 
         # Create the StateGraph
         workflow = StateGraph(GraphState)
 
-        # Add nodes
+        # Add all 7 nodes (note: web_search_node not yet integrated into routing)
         workflow.add_node("retrieve", retrieve)
         workflow.add_node("grade_documents", grade_documents)
-        workflow.add_node("transform_query", transform_query)
         workflow.add_node("generate", generate)
+        workflow.add_node("transform_query", transform_query)
+        # workflow.add_node("web_search_node", web_search)  # TODO: Integrate into decide_to_generate router
+        workflow.add_node("check_hallucination", check_hallucination)
+        workflow.add_node("check_usefulness", check_usefulness)
 
-        # Define edges
+        # Set entry point
         workflow.set_entry_point("retrieve")
 
         # After retrieve, grade documents
         workflow.add_edge("retrieve", "grade_documents")
 
-        # After grading, conditionally route
-        # If any relevant docs → generate
-        # If no relevant docs and retries left → transform_query
-        # If no relevant docs and no retries left → end
+        # After grading, decide what to do
+        # Routes based on document relevance scores and retry count
         workflow.add_conditional_edges(
             "grade_documents",
             decide_to_generate,
@@ -102,13 +130,31 @@ class AgenticRAGWorkflow:
         # After transform_query, loop back to retrieve
         workflow.add_edge("transform_query", "retrieve")
 
-        # After generate, end
-        workflow.add_edge("generate", END)
+        # After web_search_node, go to generate (when web search is integrated)
+        # workflow.add_edge("web_search_node", "generate")  # TODO: Add when integrating web_search
+
+        # After generate, check hallucination
+        workflow.add_edge("generate", "check_hallucination")
+
+        # After hallucination check, check usefulness
+        workflow.add_edge("check_hallucination", "check_usefulness")
+
+        # After usefulness check, decide final action
+        # Routes based on hallucination_check and usefulness_check
+        workflow.add_conditional_edges(
+            "check_usefulness",
+            check_hallucination_and_usefulness,
+            {
+                "generate": "generate",  # Regenerate if hallucinated
+                "transform_query": "transform_query",  # Improve query if not useful
+                "end": END  # Success!
+            }
+        )
 
         # Compile the graph
         app = workflow.compile()
 
-        logger.info("Workflow graph built and compiled")
+        logger.info("Complete agentic RAG workflow graph built and compiled")
 
         return app
 
@@ -146,7 +192,9 @@ class AgenticRAGWorkflow:
             "web_search": "No",
             "documents": [],
             "retry_count": 0,
-            "relevance_scores": []
+            "relevance_scores": [],
+            "hallucination_check": "",
+            "usefulness_check": ""
         }
 
         try:
@@ -193,7 +241,9 @@ class AgenticRAGWorkflow:
             "web_search": "No",
             "documents": [],
             "retry_count": 0,
-            "relevance_scores": []
+            "relevance_scores": [],
+            "hallucination_check": "",
+            "usefulness_check": ""
         }
 
         try:
@@ -218,16 +268,36 @@ class AgenticRAGWorkflow:
             >>> print(f"Nodes: {info['nodes']}")
         """
         return {
-            "nodes": ["retrieve", "grade_documents", "transform_query", "generate"],
+            "nodes": [
+                "retrieve",
+                "grade_documents",
+                "transform_query",
+                # "web_search_node",  # TODO: Integrate web search in future iteration
+                "generate",
+                "check_hallucination",
+                "check_usefulness"
+            ],
             "entry_point": "retrieve",
             "end_point": "END",
             "edges": [
                 ("retrieve", "grade_documents"),
-                ("grade_documents", "generate"),  # conditional (relevant docs)
-                ("grade_documents", "transform_query"),  # conditional (no relevant, retries left)
-                ("grade_documents", "END"),  # conditional (no relevant, max retries)
+                ("grade_documents", "generate"),  # conditional: relevant docs
+                ("grade_documents", "transform_query"),  # conditional: no relevant, retries left
+                ("grade_documents", "END"),  # conditional: no relevant, max retries
                 ("transform_query", "retrieve"),  # loop back
-                ("generate", "END")
+                # ("web_search_node", "generate"),  # TODO: Add when integrating web_search
+                ("generate", "check_hallucination"),  # always check
+                ("check_hallucination", "check_usefulness"),  # always check
+                ("check_usefulness", "generate"),  # conditional: hallucinated
+                ("check_usefulness", "transform_query"),  # conditional: not useful
+                ("check_usefulness", "END"),  # conditional: good answer
+            ],
+            "self_correction_mechanisms": [
+                "Document relevance grading",
+                "Query rewriting (max 3 retries)",
+                # "Web search fallback",  # TODO: Add when integrating web_search
+                "Hallucination detection",
+                "Answer usefulness verification"
             ]
         }
 
