@@ -106,7 +106,7 @@ TAVILY_API_KEY=your_key_here  # Optional
 Add your documents to the vector store:
 
 ```bash
-python scripts/load_documents.py path/to/your/documents
+python cli/main.py load path/to/your/documents
 ```
 
 Supported formats:
@@ -114,12 +114,89 @@ Supported formats:
 - Markdown (`.md`)
 - Plain text (`.txt`)
 
-### 2. Run the CLI
+Or use the script directly:
+
+```bash
+python scripts/load_documents.py path/to/your/documents
+```
+
+### 2. Check System Status
+
+Verify everything is working:
+
+```bash
+python cli/main.py status
+```
+
+### 3. Run the CLI
 
 Start the interactive query interface:
 
 ```bash
 python cli/main.py query
+```
+
+### 4. Ask Questions (Interactive Mode)
+
+```bash
+Question: What is LangGraph?
+
+Answer: LangGraph is a framework for building stateful,
+multi-actor applications with LLMs. It extends LangChain's
+capabilities by adding cyclic computational graphs and state
+management.
+
+Metadata:
+  Documents Retrieved: 4
+  Relevant Documents: 4/4
+  Query Retries: 0
+  Web Search Used: No
+  Hallucination Check: grounded
+  Usefulness Check: useful
+
+Sources:
+  1. docs/langgraph-intro.md
+  2. docs/langgraph-concepts.md
+```
+
+### 5. Single Question Mode
+
+```bash
+python cli/main.py query "What is Agentic RAG?"
+```
+
+### 6. Verbose Mode
+
+See detailed workflow execution:
+
+```bash
+python cli/main.py query --verbose
+
+Question: How does document grading work?
+
+[Shows each node execution with metadata]
+>>> retrieve
+  Retrieved: 4 docs
+
+>>> grade_documents
+  Relevant: 3/4 docs
+
+>>> generate
+  Generated answer
+
+>>> check_hallucination
+  ✓ Answer is grounded
+
+>>> check_usefulness
+  ✓ Answer addresses question
+```
+
+### 7. Stream Mode
+
+Real-time visualization:
+
+```bash
+python cli/main.py query --stream
 ```
 
 Example usage:
