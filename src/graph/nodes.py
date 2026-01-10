@@ -189,11 +189,7 @@ def transform_query(state: GraphState) -> dict:
         state: Current graph state containing question and retry_count
 
     Returns:
-        Dictionary with updated question field
-
-    Note:
-        This is a placeholder for Phase 5. Currently returns original question.
-        Will be implemented with QueryRewriter in Phase 5.
+        Dictionary with updated question and retry_count fields
 
     Example:
         >>> state = {
@@ -206,12 +202,36 @@ def transform_query(state: GraphState) -> dict:
         "How does the Agentic RAG system use LangGraph for workflow management?"
     """
     logger.info("Node: transform_query")
-    logger.info("Query transformation not yet implemented - Phase 5")
-    logger.warning("Returning original question")
 
-    # Placeholder: Return original question
-    # Will implement with QueryRewriter in Phase 5
-    return {"question": state["question"]}
+    try:
+        # Import QueryRewriter
+        from src.agents.rewriter import QueryRewriter
+
+        # Initialize rewriter
+        rewriter = QueryRewriter()
+
+        # Rewrite the question
+        logger.info(f"Original question: {state['question']}")
+        improved_question = rewriter.rewrite(state["question"])
+        logger.info(f"Improved question: {improved_question}")
+
+        # Increment retry count
+        new_retry_count = state["retry_count"] + 1
+        logger.info(f"Retry count: {new_retry_count}")
+
+        return {
+            "question": improved_question,
+            "retry_count": new_retry_count
+        }
+
+    except Exception as e:
+        logger.error(f"Query transformation failed: {e}")
+        # On failure, return original question and increment retry count
+        logger.warning("Falling back to original question")
+        return {
+            "question": state["question"],
+            "retry_count": state["retry_count"] + 1
+        }
 
 
 def web_search(state: GraphState) -> dict:

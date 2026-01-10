@@ -11,7 +11,7 @@ from typing import Dict, Any, List
 from langgraph.graph import StateGraph, END
 
 from src.graph.state import GraphState
-from src.graph.nodes import retrieve, generate, grade_documents
+from src.graph.nodes import retrieve, generate, grade_documents, transform_query
 from src.graph.routers import decide_to_generate
 from config.settings import settings
 
@@ -55,12 +55,15 @@ class AgenticRAGWorkflow:
         """
         Build the LangGraph StateGraph.
 
-        In Phase 4, this creates a flow with document grading:
+        In Phase 5, this creates a flow with document grading and query rewriting:
         START → retrieve → grade_documents → [conditional] → generate → END
+                                          ↓ (if no relevant & retries left)
+                                    transform_query → retrieve (loop)
 
-        The conditional edge routes based on document relevance:
+        The conditional edge routes based on document relevance and retry count:
         - If any relevant docs → generate
-        - If no relevant docs → transform_query (placeholder for Phase 5)
+        - If no relevant docs AND retries left → transform_query → retrieve
+        - If no relevant docs AND no retries left → end
 
         Returns:
             Compiled StateGraph ready for execution
@@ -73,6 +76,7 @@ class AgenticRAGWorkflow:
         # Add nodes
         workflow.add_node("retrieve", retrieve)
         workflow.add_node("grade_documents", grade_documents)
+        workflow.add_node("transform_query", transform_query)
         workflow.add_node("generate", generate)
 
         # Define edges
@@ -82,15 +86,21 @@ class AgenticRAGWorkflow:
         workflow.add_edge("retrieve", "grade_documents")
 
         # After grading, conditionally route
-        # If any relevant docs → generate, otherwise → transform_query (Phase 5)
+        # If any relevant docs → generate
+        # If no relevant docs and retries left → transform_query
+        # If no relevant docs and no retries left → end
         workflow.add_conditional_edges(
             "grade_documents",
             decide_to_generate,
             {
                 "generate": "generate",
-                "transform_query": END  # For now, end if no relevant docs (Phase 5 will add loop)
+                "transform_query": "transform_query",
+                "end": END
             }
         )
+
+        # After transform_query, loop back to retrieve
+        workflow.add_edge("transform_query", "retrieve")
 
         # After generate, end
         workflow.add_edge("generate", END)
@@ -208,13 +218,15 @@ class AgenticRAGWorkflow:
             >>> print(f"Nodes: {info['nodes']}")
         """
         return {
-            "nodes": ["retrieve", "grade_documents", "generate"],
+            "nodes": ["retrieve", "grade_documents", "transform_query", "generate"],
             "entry_point": "retrieve",
             "end_point": "END",
             "edges": [
                 ("retrieve", "grade_documents"),
-                ("grade_documents", "generate"),  # conditional
-                ("grade_documents", "transform_query"),  # conditional (Phase 5)
+                ("grade_documents", "generate"),  # conditional (relevant docs)
+                ("grade_documents", "transform_query"),  # conditional (no relevant, retries left)
+                ("grade_documents", "END"),  # conditional (no relevant, max retries)
+                ("transform_query", "retrieve"),  # loop back
                 ("generate", "END")
             ]
         }

@@ -14,28 +14,32 @@ from src.graph.state import GraphState
 logger = logging.getLogger(__name__)
 
 
-def decide_to_generate(state: GraphState) -> Literal["generate", "transform_query"]:
+def decide_to_generate(state: GraphState) -> Literal["generate", "transform_query", "end"]:
     """
-    Determine whether to generate an answer or transform the query.
+    Determine whether to generate an answer, transform the query, or end.
 
     This router function evaluates the relevance scores of retrieved documents
-    and decides the next step:
+    and retry count to decide the next step:
     - If any documents are relevant → generate answer
-    - If no documents are relevant → transform query for better retrieval
+    - If no documents are relevant AND retries left → transform query
+    - If no documents are relevant AND no retries left → end
 
     Args:
-        state: Current graph state containing relevance_scores
+        state: Current graph state containing relevance_scores and retry_count
 
     Returns:
-        "generate" if any relevant docs, "transform_query" if none
+        "generate" if any relevant docs, "transform_query" if none and retries left,
+        "end" if no retries left
 
     Routing Logic:
         - At least one relevant document → generate
-        - No relevant documents → transform_query (will retry retrieval)
+        - No relevant documents AND retry_count < MAX_RETRIES → transform_query
+        - No relevant documents AND retry_count >= MAX_RETRIES → end
 
     Example:
         >>> state = {
         ...     "relevance_scores": ["yes", "no", "yes"],
+        ...     "retry_count": 0,
         ...     ...
         ... }
         >>> next_node = decide_to_generate(state)
@@ -44,33 +48,54 @@ def decide_to_generate(state: GraphState) -> Literal["generate", "transform_quer
 
         >>> state = {
         ...     "relevance_scores": ["no", "no", "no"],
+        ...     "retry_count": 0,
         ...     ...
         ... }
         >>> next_node = decide_to_generate(state)
         >>> print(next_node)
         "transform_query"
+
+        >>> state = {
+        ...     "relevance_scores": ["no", "no", "no"],
+        ...     "retry_count": 3,
+        ...     ...
+        ... }
+        >>> next_node = decide_to_generate(state)
+        >>> print(next_node)
+        "end"
     """
     logger.info("Router: decide_to_generate")
 
     if not state["relevance_scores"]:
         logger.warning("No relevance scores available")
-        # If no scores, assume no relevant documents and transform query
-        return "transform_query"
+        # If no scores, check retry count
+        if state["retry_count"] < 3:  # MAX_RETRIES
+            logger.info("No scores but retries left - transform query")
+            return "transform_query"
+        else:
+            logger.info("No scores and max retries reached - end")
+            return "end"
 
     # Count relevant documents
     relevant_count = sum(1 for score in state["relevance_scores"] if score == "yes")
     total_count = len(state["relevance_scores"])
 
     logger.info(f"Relevant documents: {relevant_count}/{total_count}")
+    logger.info(f"Retry count: {state['retry_count']}/3")
 
-    # Decision: if any documents are relevant, generate answer
-    # Otherwise, transform query for better retrieval
+    # Decision tree:
+    # 1. If we have relevant documents → generate answer
     if relevant_count > 0:
         logger.info("Decision: Generate answer from relevant documents")
         return "generate"
-    else:
-        logger.info("Decision: No relevant documents, transform query")
+
+    # 2. No relevant documents - check if we should retry
+    if state["retry_count"] < 3:  # MAX_RETRIES
+        logger.info("Decision: No relevant documents, transform query (retries left)")
         return "transform_query"
+    else:
+        logger.info("Decision: Max retries reached, ending workflow")
+        return "end"
 
 
 def decide_to_web_search(state: GraphState) -> Literal["web_search", "generate"]:
