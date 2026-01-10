@@ -25,6 +25,8 @@ class GraphState(TypedDict):
         documents: List of retrieved documents (chunks) from vector store
         retry_count: Number of query rewrite attempts (max 3 to prevent infinite loops)
         relevance_scores: List of document relevance grades ("yes" or "no")
+        hallucination_check: Result of hallucination check ("grounded" or "not_grounded")
+        usefulness_check: Result of usefulness check ("useful" or "not_useful")
 
     Example:
         >>> state: GraphState = {
@@ -33,7 +35,9 @@ class GraphState(TypedDict):
         ...     "web_search": "No",
         ...     "documents": [],
         ...     "retry_count": 0,
-        ...     "relevance_scores": []
+        ...     "relevance_scores": [],
+        ...     "hallucination_check": "",
+        ...     "usefulness_check": ""
         ... }
     """
 
@@ -54,3 +58,9 @@ class GraphState(TypedDict):
 
     relevance_scores: List[str]
     """List of document relevance grades: "yes" or "no" for each document"""
+
+    hallucination_check: str
+    """Result of hallucination check: "grounded" or "not_grounded" """
+
+    usefulness_check: str
+    """Result of usefulness check: "useful" or "not_useful" """

@@ -315,17 +315,13 @@ def check_hallucination(state: GraphState) -> dict:
     Check if the generated answer is grounded in the documents.
 
     This node verifies that the answer doesn't contain information
-    not supported by the retrieved documents.
+    not supported by the retrieved documents using an LLM grader.
 
     Args:
         state: Current graph state containing generation and documents
 
     Returns:
-        Dictionary with hallucination check result
-
-    Note:
-        This is a placeholder for Phase 7. Currently returns "grounded".
-        Will be implemented with HallucinationGrader in Phase 7.
+        Dictionary with hallucination_check result ("grounded" or "not_grounded")
 
     Example:
         >>> state = {
@@ -338,12 +334,96 @@ def check_hallucination(state: GraphState) -> dict:
         "grounded"
     """
     logger.info("Node: check_hallucination")
-    logger.info("Hallucination check not yet implemented - Phase 7")
-    logger.warning("Returning default 'grounded' result")
 
-    # Placeholder: Return grounded
-    # Will implement with HallucinationGrader in Phase 7
-    return {"hallucination_check": "grounded"}
+    if not state["generation"]:
+        logger.warning("No generation to check for hallucination")
+        return {"hallucination_check": "not_grounded"}
+
+    if not state["documents"]:
+        logger.warning("No documents to verify generation against")
+        return {"hallucination_check": "not_grounded"}
+
+    try:
+        # Import HallucinationGrader
+        from src.agents.graders import HallucinationGrader
+
+        # Initialize grader
+        grader = HallucinationGrader()
+
+        # Check if generation is grounded
+        logger.debug(f"Checking if generation is grounded: {state['generation'][:100]}...")
+        score = grader.grade(state["generation"], state["documents"])
+
+        # Map score to state value
+        hallucination_check = "grounded" if score == "yes" else "not_grounded"
+
+        logger.info(f"Hallucination check result: {hallucination_check}")
+
+        return {"hallucination_check": hallucination_check}
+
+    except Exception as e:
+        logger.error(f"Hallucination check failed: {e}")
+        # On failure, assume not grounded for safety
+        logger.warning("Falling back: assuming generation is not grounded")
+        return {"hallucination_check": "not_grounded"}
+
+
+def check_usefulness(state: GraphState) -> dict:
+    """
+    Check if the generated answer addresses the user's question.
+
+    This node verifies that the answer actually resolves the question
+    or provides useful information using an LLM grader.
+
+    Args:
+        state: Current graph state containing question and generation
+
+    Returns:
+        Dictionary with usefulness_check result ("useful" or "not_useful")
+
+    Example:
+        >>> state = {
+        ...     "question": "What is Agentic RAG?",
+        ...     "generation": "Agentic RAG is a system that uses...",
+        ...     ...
+        ... }
+        >>> result = check_usefulness(state)
+        >>> print(result["usefulness_check"])
+        "useful"
+    """
+    logger.info("Node: check_usefulness")
+
+    if not state["question"]:
+        logger.warning("No question to check usefulness against")
+        return {"usefulness_check": "not_useful"}
+
+    if not state["generation"]:
+        logger.warning("No generation to check for usefulness")
+        return {"usefulness_check": "not_useful"}
+
+    try:
+        # Import AnswerGrader
+        from src.agents.graders import AnswerGrader
+
+        # Initialize grader
+        grader = AnswerGrader()
+
+        # Check if answer addresses question
+        logger.debug(f"Checking if answer addresses question: {state['question'][:100]}...")
+        score = grader.grade(state["question"], state["generation"])
+
+        # Map score to state value
+        usefulness_check = "useful" if score == "yes" else "not_useful"
+
+        logger.info(f"Usefulness check result: {usefulness_check}")
+
+        return {"usefulness_check": usefulness_check}
+
+    except Exception as e:
+        logger.error(f"Usefulness check failed: {e}")
+        # On failure, assume not useful for safety
+        logger.warning("Falling back: assuming generation is not useful")
+        return {"usefulness_check": "not_useful"}
 
 
 # Node registry for easy access
@@ -354,6 +434,7 @@ NODE_FUNCTIONS = {
     "transform_query": transform_query,
     "web_search": web_search,
     "check_hallucination": check_hallucination,
+    "check_usefulness": check_usefulness,
 }
 
 

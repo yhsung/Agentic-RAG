@@ -159,31 +159,66 @@ def check_hallucination_and_usefulness(state: GraphState) -> Literal["generate",
     2. Answer addresses the question (useful)
 
     Routing Logic:
-    - Hallucinated → regenerate
-    - Not useful → transform_query
-    - Both good → end
-
-    NOTE: This is a placeholder for Phase 7. Currently always routes
-    to end since hallucination/usefulness checks are not yet implemented.
+    - Hallucinated (not_grounded) → regenerate
+    - Grounded but not useful → transform_query (retry with better query)
+    - Grounded and useful → end (success)
 
     Args:
-        state: Current graph state
+        state: Current graph state containing hallucination_check and usefulness_check
 
     Returns:
-        "generate", "transform_query", or "end"
+        "generate" if hallucinated, "transform_query" if not useful, "end" if good
 
     Example:
-        >>> state = {"generation": "...", ...}
+        >>> state = {
+        ...     "hallucination_check": "grounded",
+        ...     "usefulness_check": "useful",
+        ...     ...
+        ... }
         >>> next_node = check_hallucination_and_usefulness(state)
         >>> print(next_node)
         "end"
+
+        >>> state = {
+        ...     "hallucination_check": "not_grounded",
+        ...     "usefulness_check": "useful",
+        ...     ...
+        ... }
+        >>> next_node = check_hallucination_and_usefulness(state)
+        >>> print(next_node)
+        "generate"
+
+        >>> state = {
+        ...     "hallucination_check": "grounded",
+        ...     "usefulness_check": "not_useful",
+        ...     ...
+        ... }
+        >>> next_node = check_hallucination_and_usefulness(state)
+        >>> print(next_node)
+        "transform_query"
     """
     logger.info("Router: check_hallucination_and_usefulness")
-    logger.info("Hallucination/usefulness check not yet implemented - Phase 7")
-    logger.warning("Routing to end")
 
-    # Placeholder: Always route to end
-    # Will implement proper logic in Phase 7
+    # Get check results from state
+    hallucination_check = state.get("hallucination_check", "not_grounded")
+    usefulness_check = state.get("usefulness_check", "not_useful")
+
+    logger.info(f"Hallucination check: {hallucination_check}")
+    logger.info(f"Usefulness check: {usefulness_check}")
+
+    # Decision tree:
+    # 1. If answer is hallucinated (not grounded) → regenerate
+    if hallucination_check == "not_grounded":
+        logger.info("Decision: Answer is hallucinated - regenerate")
+        return "generate"
+
+    # 2. If answer is grounded but not useful → transform query and retry
+    if usefulness_check == "not_useful":
+        logger.info("Decision: Answer is grounded but not useful - transform query")
+        return "transform_query"
+
+    # 3. Answer is both grounded and useful → end successfully
+    logger.info("Decision: Answer is grounded and useful - ending workflow")
     return "end"
 
 
