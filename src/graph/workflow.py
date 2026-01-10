@@ -11,7 +11,8 @@ from typing import Dict, Any, List
 from langgraph.graph import StateGraph, END
 
 from src.graph.state import GraphState
-from src.graph.nodes import retrieve, generate
+from src.graph.nodes import retrieve, generate, grade_documents
+from src.graph.routers import decide_to_generate
 from config.settings import settings
 
 
@@ -54,10 +55,12 @@ class AgenticRAGWorkflow:
         """
         Build the LangGraph StateGraph.
 
-        In Phase 3, this creates a simple linear flow:
-        START → retrieve → generate → END
+        In Phase 4, this creates a flow with document grading:
+        START → retrieve → grade_documents → [conditional] → generate → END
 
-        Later phases will add conditional routing and agentic features.
+        The conditional edge routes based on document relevance:
+        - If any relevant docs → generate
+        - If no relevant docs → transform_query (placeholder for Phase 5)
 
         Returns:
             Compiled StateGraph ready for execution
@@ -69,11 +72,27 @@ class AgenticRAGWorkflow:
 
         # Add nodes
         workflow.add_node("retrieve", retrieve)
+        workflow.add_node("grade_documents", grade_documents)
         workflow.add_node("generate", generate)
 
         # Define edges
         workflow.set_entry_point("retrieve")
-        workflow.add_edge("retrieve", "generate")
+
+        # After retrieve, grade documents
+        workflow.add_edge("retrieve", "grade_documents")
+
+        # After grading, conditionally route
+        # If any relevant docs → generate, otherwise → transform_query (Phase 5)
+        workflow.add_conditional_edges(
+            "grade_documents",
+            decide_to_generate,
+            {
+                "generate": "generate",
+                "transform_query": END  # For now, end if no relevant docs (Phase 5 will add loop)
+            }
+        )
+
+        # After generate, end
         workflow.add_edge("generate", END)
 
         # Compile the graph
@@ -189,11 +208,13 @@ class AgenticRAGWorkflow:
             >>> print(f"Nodes: {info['nodes']}")
         """
         return {
-            "nodes": ["retrieve", "generate"],
+            "nodes": ["retrieve", "grade_documents", "generate"],
             "entry_point": "retrieve",
             "end_point": "END",
             "edges": [
-                ("retrieve", "generate"),
+                ("retrieve", "grade_documents"),
+                ("grade_documents", "generate"),  # conditional
+                ("grade_documents", "transform_query"),  # conditional (Phase 5)
                 ("generate", "END")
             ]
         }

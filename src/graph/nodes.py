@@ -133,10 +133,6 @@ def grade_documents(state: GraphState) -> dict:
     Returns:
         Dictionary with updated relevance_scores field
 
-    Note:
-        This is a placeholder for Phase 4. Currently returns all "yes" scores.
-        Will be implemented with DocumentGrader in Phase 4.
-
     Example:
         >>> state = {
         ...     "question": "What is Agentic RAG?",
@@ -148,14 +144,38 @@ def grade_documents(state: GraphState) -> dict:
         ["yes", "yes", "no"]
     """
     logger.info("Node: grade_documents")
-    logger.info("Document grading not yet implemented - Phase 4")
-    logger.warning("Returning default 'yes' scores for all documents")
 
-    # Placeholder: Grade all documents as relevant
-    # Will implement with DocumentGrader in Phase 4
-    scores = ["yes"] * len(state["documents"])
+    if not state["documents"]:
+        logger.warning("No documents to grade")
+        return {"relevance_scores": []}
 
-    return {"relevance_scores": scores}
+    try:
+        # Import DocumentGrader
+        from src.agents.graders import DocumentGrader
+
+        # Initialize grader
+        grader = DocumentGrader()
+
+        # Grade all documents
+        logger.info(f"Grading {len(state['documents'])} documents")
+        scores = grader.grade_batch(state["question"], state["documents"])
+
+        # Count relevant documents
+        relevant_count = sum(1 for s in scores if s == "yes")
+        logger.info(f"Grading complete: {relevant_count}/{len(scores)} documents relevant")
+
+        # Log individual scores
+        for i, (doc, score) in enumerate(zip(state["documents"], scores)):
+            source = doc.metadata.get("source", "unknown")
+            logger.debug(f"  Document {i+1}: {score} (source: {source})")
+
+        return {"relevance_scores": scores}
+
+    except Exception as e:
+        logger.error(f"Document grading failed: {e}")
+        # On failure, grade all as relevant to allow system to continue
+        logger.warning("Falling back: grading all documents as relevant")
+        return {"relevance_scores": ["yes"] * len(state["documents"])}
 
 
 def transform_query(state: GraphState) -> dict:
