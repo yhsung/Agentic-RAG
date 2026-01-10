@@ -1,0 +1,37 @@
+# Core Framework
+langgraph==0.2.45
+langchain==0.3.9
+langchain-core==0.3.21
+langchain-community==0.3.8
+
+# LLM & Embeddings
+ollama==0.4.5
+
+# Vector Store
+chromadb==0.5.23
+sentence-transformers==3.3.1
+
+# Document Processing
+pypdf==5.1.0
+unstructured==0.16.9
+python-magic==0.4.27
+
+# Web Search
+tavily-python==0.5.0
+duckduckgo-search==7.0.3
+
+# CLI
+click==8.1.8
+rich==13.9.4
+
+# Configuration
+pydantic==2.10.4
+pydantic-settings==2.7.0
+python-dotenv==1.0.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.25.2
+
+# Future Streamlit UI (uncomment when ready)
+# streamlit==1.41.1
