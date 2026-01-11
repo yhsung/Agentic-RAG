@@ -30,17 +30,15 @@ from src.graph.state import GraphState
 class TestRetrieveNode:
     """Test the retrieve node."""
 
-    @patch('src.graph.nodes.get_vector_store')
-    def test_retrieve_returns_documents(self, mock_get_vector_store):
+    @patch('src.vectorstore.chroma_store.similarity_search')
+    def test_retrieve_returns_documents(self, mock_similarity_search):
         """Test that retrieve node returns documents."""
-        # Mock vector store
-        mock_store = Mock()
+        # Mock similarity_search to return documents directly
         mock_docs = [
             Document(page_content="Test content 1", metadata={"source": "test1"}),
             Document(page_content="Test content 2", metadata={"source": "test2"})
         ]
-        mock_store.similarity_search.return_value = mock_docs
-        mock_get_vector_store.return_value = mock_store
+        mock_similarity_search.return_value = mock_docs
 
         # Create state
         state: GraphState = {
@@ -62,12 +60,10 @@ class TestRetrieveNode:
         assert len(result["documents"]) > 0
         assert isinstance(result["documents"][0], Document)
 
-    @patch('src.graph.nodes.get_vector_store')
-    def test_retrieve_with_empty_question(self, mock_get_vector_store):
+    @patch('src.vectorstore.chroma_store.similarity_search')
+    def test_retrieve_with_empty_question(self, mock_similarity_search):
         """Test retrieve with empty question."""
-        mock_store = Mock()
-        mock_store.similarity_search.return_value = []
-        mock_get_vector_store.return_value = mock_store
+        mock_similarity_search.return_value = []
 
         state: GraphState = {
             "question": "",
@@ -89,12 +85,12 @@ class TestRetrieveNode:
 class TestGradeDocumentsNode:
     """Test the grade_documents node."""
 
-    @patch('src.graph.nodes.DocumentGrader')
+    @patch('src.agents.graders.DocumentGrader')
     def test_grade_documents_all_relevant(self, mock_grader_class):
         """Test grading when all documents are relevant."""
         # Mock grader
         mock_grader = Mock()
-        mock_grader.grade.return_value = "yes"
+        mock_grader.grade_batch.return_value = ["yes", "yes"]
         mock_grader_class.return_value = mock_grader
 
         # Create state with documents
@@ -122,12 +118,12 @@ class TestGradeDocumentsNode:
         assert len(result["relevance_scores"]) == len(documents)
         assert all(score == "yes" for score in result["relevance_scores"])
 
-    @patch('src.graph.nodes.DocumentGrader')
+    @patch('src.agents.graders.DocumentGrader')
     def test_grade_documents_mixed_relevance(self, mock_grader_class):
         """Test grading with mixed relevance."""
         # Mock grader to return alternating yes/no
         mock_grader = Mock()
-        mock_grader.grade.side_effect = ["yes", "no", "yes"]
+        mock_grader.grade_batch.return_value = ["yes", "no", "yes"]
         mock_grader_class.return_value = mock_grader
 
         documents = [
@@ -158,7 +154,7 @@ class TestGradeDocumentsNode:
 class TestGenerateNode:
     """Test the generate node."""
 
-    @patch('src.graph.nodes.AnswerGenerator')
+    @patch('src.agents.generator.AnswerGenerator')
     def test_generate_returns_answer(self, mock_generator_class):
         """Test that generate node returns an answer."""
         # Mock generator
@@ -186,7 +182,7 @@ class TestGenerateNode:
         assert len(result["generation"]) > 0
         assert isinstance(result["generation"], str)
 
-    @patch('src.graph.nodes.AnswerGenerator')
+    @patch('src.agents.generator.AnswerGenerator')
     def test_generate_with_no_documents(self, mock_generator_class):
         """Test generate with no documents."""
         mock_generator = Mock()
@@ -213,7 +209,7 @@ class TestGenerateNode:
 class TestTransformQueryNode:
     """Test the transform_query node."""
 
-    @patch('src.graph.nodes.QueryRewriter')
+    @patch('src.agents.rewriter.QueryRewriter')
     def test_transform_query_improves_question(self, mock_rewriter_class):
         """Test that transform_query improves the question."""
         # Mock rewriter
@@ -240,7 +236,7 @@ class TestTransformQueryNode:
         assert "retry_count" in result
         assert result["retry_count"] == 1
 
-    @patch('src.graph.nodes.QueryRewriter')
+    @patch('src.agents.rewriter.QueryRewriter')
     def test_transform_query_increments_retry(self, mock_rewriter_class):
         """Test that transform_query increments retry count."""
         mock_rewriter = Mock()
@@ -267,7 +263,7 @@ class TestTransformQueryNode:
 class TestWebSearchNode:
     """Test the web_search node."""
 
-    @patch('src.graph.nodes.WebSearcher')
+    @patch('src.agents.web_searcher.WebSearcher')
     def test_web_search_returns_documents(self, mock_searcher_class):
         """Test that web_search returns documents."""
         # Mock searcher
@@ -297,7 +293,7 @@ class TestWebSearchNode:
         assert "web_search" in result
         assert result["web_search"] == "Yes"
 
-    @patch('src.graph.nodes.WebSearcher')
+    @patch('src.agents.web_searcher.WebSearcher')
     def test_web_search_unavailable(self, mock_searcher_class):
         """Test web_search when service is unavailable."""
         # Mock unavailable searcher
@@ -326,7 +322,7 @@ class TestWebSearchNode:
 class TestCheckHallucinationNode:
     """Test the check_hallucination node."""
 
-    @patch('src.graph.nodes.HallucinationGrader')
+    @patch('src.agents.graders.HallucinationGrader')
     def test_check_hallucination_grounded(self, mock_grader_class):
         """Test check_hallucination with grounded answer."""
         # Mock grader
@@ -353,7 +349,7 @@ class TestCheckHallucinationNode:
         assert "hallucination_check" in result
         assert result["hallucination_check"] == "grounded"
 
-    @patch('src.graph.nodes.HallucinationGrader')
+    @patch('src.agents.graders.HallucinationGrader')
     def test_check_hallucination_not_grounded(self, mock_grader_class):
         """Test check_hallucination with hallucinated answer."""
         mock_grader = Mock()
@@ -382,7 +378,7 @@ class TestCheckHallucinationNode:
 class TestCheckUsefulnessNode:
     """Test the check_usefulness node."""
 
-    @patch('src.graph.nodes.AnswerGrader')
+    @patch('src.agents.graders.AnswerGrader')
     def test_check_usefulness_useful(self, mock_grader_class):
         """Test check_usefulness with useful answer."""
         # Mock grader
@@ -407,7 +403,7 @@ class TestCheckUsefulnessNode:
         assert "usefulness_check" in result
         assert result["usefulness_check"] == "useful"
 
-    @patch('src.graph.nodes.AnswerGrader')
+    @patch('src.agents.graders.AnswerGrader')
     def test_check_usefulness_not_useful(self, mock_grader_class):
         """Test check_usefulness with not useful answer."""
         mock_grader = Mock()
@@ -434,21 +430,19 @@ class TestCheckUsefulnessNode:
 class TestNodeIntegration:
     """Integration tests for node interactions."""
 
-    @patch('src.graph.nodes.get_vector_store')
-    @patch('src.graph.nodes.DocumentGrader')
-    def test_retrieve_and_grade_pipeline(self, mock_grader_class, mock_get_vector_store):
+    @patch('src.graph.nodes.similarity_search')
+    @patch('src.agents.graders.DocumentGrader')
+    def test_retrieve_and_grade_pipeline(self, mock_grader_class, mock_similarity_search):
         """Test retrieve → grade_documents pipeline."""
         # Mock dependencies
-        mock_store = Mock()
         mock_docs = [
             Document(page_content="LangGraph is a library.", metadata={"source": "test1"}),
             Document(page_content="Python is a language.", metadata={"source": "test2"})
         ]
-        mock_store.similarity_search.return_value = mock_docs
-        mock_get_vector_store.return_value = mock_store
+        mock_similarity_search.return_value = mock_docs
 
         mock_grader = Mock()
-        mock_grader.grade.side_effect = ["yes", "no"]
+        mock_grader.grade_batch.return_value = ["yes", "no"]
         mock_grader_class.return_value = mock_grader
 
         # Initial state

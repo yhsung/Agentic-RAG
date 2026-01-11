@@ -11,6 +11,7 @@ Tests cover:
 
 import pytest
 from unittest.mock import Mock, patch
+from langchain_core.documents import Document
 
 from src.graph.workflow import AgenticRAGWorkflow
 from src.graph.state import GraphState
@@ -51,32 +52,30 @@ class TestWorkflowInitialization:
 class TestHappyPath:
     """Test the happy path workflow."""
 
-    @patch('src.graph.nodes.get_vector_store')
-    @patch('src.graph.nodes.DocumentGrader')
-    @patch('src.graph.nodes.AnswerGenerator')
-    @patch('src.graph.nodes.HallucinationGrader')
-    @patch('src.graph.nodes.AnswerGrader')
+    @patch('src.graph.nodes.similarity_search')
+    @patch('src.agents.graders.DocumentGrader')
+    @patch('src.agents.generator.AnswerGenerator')
+    @patch('src.agents.graders.HallucinationGrader')
+    @patch('src.agents.graders.AnswerGrader')
     def test_happy_path_workflow(
         self,
         mock_answer_grader_class,
         mock_hallucination_grader_class,
         mock_generator_class,
         mock_doc_grader_class,
-        mock_get_vector_store
+        mock_similarity_search
     ):
         """Test complete happy path: retrieve → grade → generate → verify → end."""
-        # Mock vector store
-        mock_store = Mock()
+        # Mock similarity search to return documents
         mock_docs = [
-            Mock(page_content="LangGraph is a library for building agents.", metadata={"source": "test1"}),
-            Mock(page_content="LangGraph uses state machines.", metadata={"source": "test2"})
+            Document(page_content="LangGraph is a library for building agents.", metadata={"source": "test1"}),
+            Document(page_content="LangGraph uses state machines.", metadata={"source": "test2"})
         ]
-        mock_store.similarity_search.return_value = mock_docs
-        mock_get_vector_store.return_value = mock_store
+        mock_similarity_search.return_value = mock_docs
 
         # Mock document grader - all relevant
         mock_doc_grader = Mock()
-        mock_doc_grader.grade.return_value = "yes"
+        mock_doc_grader.grade_batch.return_value = ["yes", "yes"]
         mock_doc_grader_class.return_value = mock_doc_grader
 
         # Mock generator
@@ -110,12 +109,12 @@ class TestHappyPath:
 class TestQueryRewritePath:
     """Test the query rewriting workflow path."""
 
-    @patch('src.graph.nodes.get_vector_store')
-    @patch('src.graph.nodes.DocumentGrader')
-    @patch('src.graph.nodes.QueryRewriter')
-    @patch('src.graph.nodes.AnswerGenerator')
-    @patch('src.graph.nodes.HallucinationGrader')
-    @patch('src.graph.nodes.AnswerGrader')
+    @patch('src.graph.nodes.similarity_search')
+    @patch('src.agents.graders.DocumentGrader')
+    @patch('src.agents.rewriter.QueryRewriter')
+    @patch('src.agents.generator.AnswerGenerator')
+    @patch('src.agents.graders.HallucinationGrader')
+    @patch('src.agents.graders.AnswerGrader')
     def test_query_rewrite_path(
         self,
         mock_answer_grader_class,
@@ -171,11 +170,11 @@ class TestQueryRewritePath:
 class TestHallucinationCorrectionPath:
     """Test the hallucination correction workflow path."""
 
-    @patch('src.graph.nodes.get_vector_store')
-    @patch('src.graph.nodes.DocumentGrader')
-    @patch('src.graph.nodes.AnswerGenerator')
-    @patch('src.graph.nodes.HallucinationGrader')
-    @patch('src.graph.nodes.AnswerGrader')
+    @patch('src.graph.nodes.similarity_search')
+    @patch('src.agents.graders.DocumentGrader')
+    @patch('src.agents.generator.AnswerGenerator')
+    @patch('src.agents.graders.HallucinationGrader')
+    @patch('src.agents.graders.AnswerGrader')
     def test_hallucination_correction(
         self,
         mock_answer_grader_class,
@@ -228,12 +227,12 @@ class TestHallucinationCorrectionPath:
 class TestUsefulnessCorrectionPath:
     """Test the usefulness correction workflow path."""
 
-    @patch('src.graph.nodes.get_vector_store')
-    @patch('src.graph.nodes.DocumentGrader')
-    @patch('src.graph.nodes.QueryRewriter')
-    @patch('src.graph.nodes.AnswerGenerator')
-    @patch('src.graph.nodes.HallucinationGrader')
-    @patch('src.graph.nodes.AnswerGrader')
+    @patch('src.graph.nodes.similarity_search')
+    @patch('src.agents.graders.DocumentGrader')
+    @patch('src.agents.rewriter.QueryRewriter')
+    @patch('src.agents.generator.AnswerGenerator')
+    @patch('src.agents.graders.HallucinationGrader')
+    @patch('src.agents.graders.AnswerGrader')
     def test_usefulness_correction(
         self,
         mock_answer_grader_class,
@@ -297,7 +296,7 @@ class TestErrorScenarios:
         with pytest.raises(ValueError, match="Question cannot be empty"):
             workflow.run("")
 
-    @patch('src.graph.nodes.get_vector_store')
+    @patch('src.graph.nodes.similarity_search')
     def test_no_documents_found(self, mock_get_vector_store):
         """Test workflow when no documents are found."""
         # Mock empty vector store
@@ -317,11 +316,11 @@ class TestErrorScenarios:
 class TestWorkflowStreaming:
     """Test workflow streaming functionality."""
 
-    @patch('src.graph.nodes.get_vector_store')
-    @patch('src.graph.nodes.DocumentGrader')
-    @patch('src.graph.nodes.AnswerGenerator')
-    @patch('src.graph.nodes.HallucinationGrader')
-    @patch('src.graph.nodes.AnswerGrader')
+    @patch('src.graph.nodes.similarity_search')
+    @patch('src.agents.graders.DocumentGrader')
+    @patch('src.agents.generator.AnswerGenerator')
+    @patch('src.agents.graders.HallucinationGrader')
+    @patch('src.agents.graders.AnswerGrader')
     def test_workflow_streaming(
         self,
         mock_answer_grader_class,

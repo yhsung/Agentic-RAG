@@ -120,7 +120,7 @@ START → retrieve → grade_documents
 |-----------|---------|--------|----------------|
 | Document Relevance Grading | Filter irrelevant docs | ✅ Active | [Phase 4](docs/phases/PHASE4_COMPLETE.md) |
 | Query Rewriting | Improve vague queries | ✅ Active | [Phase 5](docs/phases/PHASE5_COMPLETE.md) |
-| Web Search Fallback | Retrieve external knowledge | ⏸️ TODO | [Phase 6](docs/phases/PHASE6_COMPLETE.md) |
+| Web Search Fallback | Retrieve external knowledge | ✅ Active | [Phase 6](docs/phases/PHASE6_COMPLETE.md) |
 | Hallucination Detection | Verify answer grounding | ✅ Active | [Phase 7](docs/phases/PHASE7_COMPLETE.md) |
 | Answer Usefulness Check | Ensure answers address questions | ✅ Active | [Phase 7](docs/phases/PHASE7_COMPLETE.md) |
 
@@ -368,9 +368,8 @@ Real-time visualization with icons:
 
 ### Self-Correction Mechanisms
 
-- **Active Mechanisms**: 3/4 (75%)
-- **Pending Integration**: 1/4 (web search routing)
-- **Total Nodes**: 7 (6 active, 1 pending)
+- **Active Mechanisms**: 4/4 (100%)
+- **Total Nodes**: 7 (all active)
 - **Total Routers**: 3 (all active)
 - **Total Workflow Paths**: 4
 
@@ -398,16 +397,16 @@ Real-time visualization with icons:
 
 ### Potential Improvements
 
-1. **Web Search Integration** - Complete routing integration
-2. **FastAPI Endpoints** - REST API for web applications
-3. **Streamlit Interface** - Web-based UI
-4. **Session Memory** - Conversation context
-5. **Multi-Modal Support** - Images and tables
-6. **Docker Container** - Easy deployment
-7. **Monitoring Dashboard** - Performance metrics
-8. **A/B Testing** - Prompt comparison
-9. **Fine-Tuned Models** - Domain-specific models
-10. **Caching Layer** - Redis for performance
+1. **FastAPI Endpoints** - REST API for web applications
+2. **Streamlit Interface** - Web-based UI
+3. **Session Memory** - Conversation context
+4. **Multi-Modal Support** - Images and tables
+5. **Docker Container** - Easy deployment
+6. **Monitoring Dashboard** - Performance metrics
+7. **A/B Testing** - Prompt comparison
+8. **Fine-Tuned Models** - Domain-specific models
+9. **Caching Layer** - Redis for performance
+10. **Additional Web Search Providers** - Bing, Google, etc.
 
 ### Community Contributions
 
