@@ -68,12 +68,13 @@ def generate(state: GraphState) -> dict:
 
     This node uses the RAG (Retrieval-Augmented Generation) pattern to
     generate a concise answer based on the retrieved context documents.
+    Tracks regeneration count when hallucination is detected.
 
     Args:
-        state: Current graph state containing question and documents
+        state: Current graph state containing question, documents, and regeneration_count
 
     Returns:
-        Dictionary with updated generation field
+        Dictionary with updated generation and regeneration_count fields
 
     Raises:
         ValueError: If no documents are available
@@ -82,6 +83,8 @@ def generate(state: GraphState) -> dict:
         >>> state = {
         ...     "question": "What is Agentic RAG?",
         ...     "documents": [doc1, doc2, doc3],
+        ...     "regeneration_count": 0,
+        ...     "hallucination_check": "",
         ...     ...
         ... }
         >>> result = generate(state)
@@ -94,10 +97,24 @@ def generate(state: GraphState) -> dict:
     if not state["documents"]:
         logger.warning("No documents available for generation")
         return {
-            "generation": "I apologize, but I don't have enough relevant information to answer this question."
+            "generation": "I apologize, but I don't have enough relevant information to answer this question.",
+            "regeneration_count": state.get("regeneration_count", 0)
         }
 
     try:
+        # Get regeneration count and hallucination check
+        regeneration_count = state.get("regeneration_count", 0)
+        hallucination_check = state.get("hallucination_check", "")
+
+        # If we detected hallucination in previous attempt, this is a regeneration
+        if hallucination_check == "not_grounded":
+            regeneration_count += 1
+            logger.warning(f"Regenerating answer (attempt {regeneration_count})")
+        else:
+            # Reset regeneration count if this is not a regeneration
+            # (first generation or after a query rewrite)
+            regeneration_count = 0
+
         # Initialize generator with prompt variant from state
         prompt_variant = state.get("prompt_variant", "baseline")
         generator = AnswerGenerator(prompt_variant=prompt_variant)
@@ -111,12 +128,16 @@ def generate(state: GraphState) -> dict:
         logger.info("Answer generated successfully")
         logger.debug(f"Generated answer: {answer[:200]}...")
 
-        return {"generation": answer}
+        return {
+            "generation": answer,
+            "regeneration_count": regeneration_count
+        }
 
     except Exception as e:
         logger.error(f"Generation failed: {e}")
         return {
-            "generation": f"I encountered an error while generating the answer: {str(e)}"
+            "generation": f"I encountered an error while generating the answer: {str(e)}",
+            "regeneration_count": state.get("regeneration_count", 0)
         }
 
 
@@ -476,6 +497,7 @@ if __name__ == "__main__":
         "web_search_needed": "No",
         "documents": [],
         "retry_count": 0,
+        "regeneration_count": 0,
         "relevance_scores": [],
         "hallucination_check": "",
         "usefulness_check": "",

@@ -160,7 +160,10 @@ class AgenticRAGWorkflow:
         # Compile the graph
         app = workflow.compile()
 
-        logger.info("Complete agentic RAG workflow graph built and compiled")
+        logger.info(
+            f"Complete agentic RAG workflow graph built and compiled "
+            f"(recursion_limit={settings.WORKFLOW_RECURSION_LIMIT})"
+        )
 
         return app
 
@@ -169,7 +172,8 @@ class AgenticRAGWorkflow:
         Run the workflow with a question.
 
         Executes the complete workflow and returns the final state
-        with the generated answer.
+        with the generated answer. Includes graceful error recovery
+        for recursion limit errors.
 
         Args:
             question: The user's question
@@ -179,7 +183,7 @@ class AgenticRAGWorkflow:
 
         Raises:
             ValueError: If question is empty
-            Exception: If workflow execution fails
+            Exception: If workflow execution fails (non-recursion errors)
 
         Example:
             >>> rag = AgenticRAGWorkflow()
@@ -198,6 +202,7 @@ class AgenticRAGWorkflow:
             "web_search_needed": "No",
             "documents": [],
             "retry_count": 0,
+            "regeneration_count": 0,
             "relevance_scores": [],
             "hallucination_check": "",
             "usefulness_check": "",
@@ -205,8 +210,11 @@ class AgenticRAGWorkflow:
         }
 
         try:
-            # Run the workflow
-            result = self.workflow.invoke(initial_state)
+            # Run the workflow with recursion limit
+            result = self.workflow.invoke(
+                initial_state,
+                config={"recursion_limit": settings.WORKFLOW_RECURSION_LIMIT}
+            )
 
             logger.info("Workflow completed successfully")
             logger.debug(f"Final state keys: {list(result.keys())}")
@@ -214,8 +222,44 @@ class AgenticRAGWorkflow:
             return result
 
         except Exception as e:
-            logger.error(f"Workflow execution failed: {e}")
-            raise Exception(f"Workflow failed: {e}")
+            error_message = str(e)
+
+            # Check if this is a recursion limit error
+            if "recursion" in error_message.lower() or "Recursion limit" in error_message:
+                logger.error(
+                    f"Workflow hit recursion limit after {settings.WORKFLOW_RECURSION_LIMIT} steps. "
+                    f"Question may be too complex or system is stuck in a loop."
+                )
+
+                # Return a graceful fallback response
+                return {
+                    "question": question,
+                    "generation": (
+                        "I apologize, but I'm having difficulty answering this question. "
+                        "The system exhausted its maximum processing steps while trying to "
+                        "generate a reliable answer. This could mean:\n\n"
+                        "1. The question requires information not available in the knowledge base\n"
+                        "2. The retrieval system is struggling to find relevant documents\n"
+                        "3. The answer generation is stuck in a correction loop\n\n"
+                        "Please try:\n"
+                        "- Rephrasing your question more specifically\n"
+                        "- Breaking complex questions into simpler parts\n"
+                        "- Checking if the knowledge base contains relevant information"
+                    ),
+                    "documents": [],
+                    "retry_count": initial_state["retry_count"],
+                    "regeneration_count": initial_state["regeneration_count"],
+                    "relevance_scores": [],
+                    "hallucination_check": "error",
+                    "usefulness_check": "error",
+                    "web_search_needed": "No",
+                    "prompt_variant": self.prompt_variant,
+                    "error": "recursion_limit_exceeded"
+                }
+            else:
+                # Other errors - log and re-raise
+                logger.error(f"Workflow execution failed: {e}")
+                raise Exception(f"Workflow failed: {e}")
 
     def stream(self, question: str):
         """
@@ -248,6 +292,7 @@ class AgenticRAGWorkflow:
             "web_search_needed": "No",
             "documents": [],
             "retry_count": 0,
+            "regeneration_count": 0,
             "relevance_scores": [],
             "hallucination_check": "",
             "usefulness_check": "",
@@ -303,9 +348,11 @@ class AgenticRAGWorkflow:
             "self_correction_mechanisms": [
                 "Document relevance grading",
                 "Query rewriting (max 3 retries)",
+                "Answer regeneration (max 3 for hallucination correction)",
                 "Web search fallback",
                 "Hallucination detection",
-                "Answer usefulness verification"
+                "Answer usefulness verification",
+                f"Recursion limit: {settings.WORKFLOW_RECURSION_LIMIT} steps"
             ]
         }
 

@@ -9,6 +9,7 @@ import logging
 from typing import Literal
 
 from src.graph.state import GraphState
+from config.settings import settings
 
 
 logger = logging.getLogger(__name__)
@@ -159,20 +160,27 @@ def check_hallucination_and_usefulness(state: GraphState) -> Literal["generate",
     2. Answer addresses the question (useful)
 
     Routing Logic:
-    - Hallucinated (not_grounded) → regenerate
-    - Grounded but not useful → transform_query (retry with better query)
+    - Hallucinated (not_grounded) AND regenerations remaining → regenerate
+    - Grounded but not useful AND retries remaining → transform_query
+    - Hallucinated with no regenerations left → end (graceful degradation)
+    - Not useful with no retries left → end (graceful degradation)
     - Grounded and useful → end (success)
 
     Args:
-        state: Current graph state containing hallucination_check and usefulness_check
+        state: Current graph state containing hallucination_check, usefulness_check,
+               retry_count, and regeneration_count
 
     Returns:
-        "generate" if hallucinated, "transform_query" if not useful, "end" if good
+        "generate" if hallucinated and regenerations remaining,
+        "transform_query" if not useful and retries remaining,
+        "end" if answer is good OR limits exhausted
 
     Example:
         >>> state = {
         ...     "hallucination_check": "grounded",
         ...     "usefulness_check": "useful",
+        ...     "retry_count": 0,
+        ...     "regeneration_count": 0,
         ...     ...
         ... }
         >>> next_node = check_hallucination_and_usefulness(state)
@@ -182,6 +190,8 @@ def check_hallucination_and_usefulness(state: GraphState) -> Literal["generate",
         >>> state = {
         ...     "hallucination_check": "not_grounded",
         ...     "usefulness_check": "useful",
+        ...     "retry_count": 0,
+        ...     "regeneration_count": 0,
         ...     ...
         ... }
         >>> next_node = check_hallucination_and_usefulness(state)
@@ -191,6 +201,8 @@ def check_hallucination_and_usefulness(state: GraphState) -> Literal["generate",
         >>> state = {
         ...     "hallucination_check": "grounded",
         ...     "usefulness_check": "not_useful",
+        ...     "retry_count": 0,
+        ...     "regeneration_count": 0,
         ...     ...
         ... }
         >>> next_node = check_hallucination_and_usefulness(state)
@@ -202,23 +214,49 @@ def check_hallucination_and_usefulness(state: GraphState) -> Literal["generate",
     # Get check results from state
     hallucination_check = state.get("hallucination_check", "not_grounded")
     usefulness_check = state.get("usefulness_check", "not_useful")
+    retry_count = state.get("retry_count", 0)
+    regeneration_count = state.get("regeneration_count", 0)
 
-    logger.info(f"Hallucination check: {hallucination_check}")
-    logger.info(f"Usefulness check: {usefulness_check}")
+    logger.info(
+        f"Hallucination: {hallucination_check}, "
+        f"Usefulness: {usefulness_check}, "
+        f"Retries: {retry_count}/{settings.MAX_RETRIES}, "
+        f"Regenerations: {regeneration_count}/{settings.MAX_REGENERATIONS}"
+    )
 
-    # Decision tree:
-    # 1. If answer is hallucinated (not grounded) → regenerate
+    # Decision tree with limit checking:
+    # 1. If answer is hallucinated (not grounded) → regenerate, if regenerations remaining
     if hallucination_check == "not_grounded":
-        logger.info("Decision: Answer is hallucinated - regenerate")
-        return "generate"
+        if regeneration_count < settings.MAX_REGENERATIONS:
+            logger.warning(
+                f"Answer hallucinated, regenerating "
+                f"(attempt {regeneration_count + 1}/{settings.MAX_REGENERATIONS})"
+            )
+            return "generate"
+        else:
+            logger.error(
+                f"Max regenerations ({settings.MAX_REGENERATIONS}) exceeded. "
+                f"Returning best attempt despite hallucination."
+            )
+            return "end"  # Stop even if hallucinated (graceful degradation)
 
-    # 2. If answer is grounded but not useful → transform query and retry
+    # 2. If answer is grounded but not useful → transform query, if retries remaining
     if usefulness_check == "not_useful":
-        logger.info("Decision: Answer is grounded but not useful - transform query")
-        return "transform_query"
+        if retry_count < settings.MAX_RETRIES:
+            logger.warning(
+                f"Answer not useful, rewriting query "
+                f"(attempt {retry_count + 1}/{settings.MAX_RETRIES})"
+            )
+            return "transform_query"
+        else:
+            logger.error(
+                f"Max retries ({settings.MAX_RETRIES}) exceeded. "
+                f"Returning best attempt despite low usefulness."
+            )
+            return "end"  # Stop even if not useful (graceful degradation)
 
     # 3. Answer is both grounded and useful → end successfully
-    logger.info("Decision: Answer is grounded and useful - ending workflow")
+    logger.info("✓ Answer is grounded and useful - ending workflow")
     return "end"
 
 
@@ -300,6 +338,7 @@ if __name__ == "__main__":
         "web_search_needed": "No",
         "documents": [None] * 3,
         "retry_count": 0,
+        "regeneration_count": 0,
         "relevance_scores": ["yes", "no", "yes"]
     }
     result = decide_to_generate(state_with_relevant)
@@ -315,6 +354,7 @@ if __name__ == "__main__":
         "web_search_needed": "No",
         "documents": [None] * 3,
         "retry_count": 0,
+        "regeneration_count": 0,
         "relevance_scores": ["no", "no", "no"]
     }
     result = decide_to_generate(state_without_relevant)
@@ -331,6 +371,7 @@ if __name__ == "__main__":
             "web_search_needed": "No",
             "documents": [],
             "retry_count": retry_count,
+            "regeneration_count": 0,
             "relevance_scores": []
         }
         can_retry = should_retry_query(state)

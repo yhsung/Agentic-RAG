@@ -122,6 +122,18 @@ class Settings(BaseSettings):
         le=10,
         description="Maximum query rewrite attempts"
     )
+    MAX_REGENERATIONS: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="Maximum answer regeneration attempts for hallucination correction"
+    )
+    WORKFLOW_RECURSION_LIMIT: int = Field(
+        default=50,
+        ge=25,
+        le=200,
+        description="Maximum workflow steps before stopping (LangGraph recursion limit)"
+    )
 
     # Web Search Configuration
     TAVILY_API_KEY: Optional[str] = Field(
@@ -221,6 +233,8 @@ if __name__ == "__main__":
     print(f"Chunk Size: {settings.CHUNK_SIZE}")
     print(f"Chunk Overlap: {settings.CHUNK_OVERLAP}")
     print(f"Max Retries: {settings.MAX_RETRIES}")
+    print(f"Max Regenerations: {settings.MAX_REGENERATIONS}")
+    print(f"Workflow Recursion Limit: {settings.WORKFLOW_RECURSION_LIMIT}")
     print(f"Log Level: {settings.LOG_LEVEL}")
     print(f"Verbose: {settings.VERBOSE}")
     print(f"Tavily API Key: {'Set' if settings.TAVILY_API_KEY else 'Not Set'}")

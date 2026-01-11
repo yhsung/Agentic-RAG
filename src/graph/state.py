@@ -24,6 +24,7 @@ class GraphState(TypedDict):
         web_search_needed: "Yes" or "No" flag indicating if web search is needed
         documents: List of retrieved documents (chunks) from vector store
         retry_count: Number of query rewrite attempts (max 3 to prevent infinite loops)
+        regeneration_count: Number of answer regeneration attempts for hallucination correction
         relevance_scores: List of document relevance grades ("yes" or "no")
         hallucination_check: Result of hallucination check ("grounded" or "not_grounded")
         usefulness_check: Result of usefulness check ("useful" or "not_useful")
@@ -36,6 +37,7 @@ class GraphState(TypedDict):
         ...     "web_search_needed": "No",
         ...     "documents": [],
         ...     "retry_count": 0,
+        ...     "regeneration_count": 0,
         ...     "relevance_scores": [],
         ...     "hallucination_check": "",
         ...     "usefulness_check": "",
@@ -57,6 +59,9 @@ class GraphState(TypedDict):
 
     retry_count: int
     """Number of query rewrite attempts (max 3 to prevent infinite loops)"""
+
+    regeneration_count: int
+    """Number of answer regeneration attempts for hallucination correction (max 3)"""
 
     relevance_scores: List[str]
     """List of document relevance grades: "yes" or "no" for each document"""

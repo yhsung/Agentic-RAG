@@ -111,6 +111,8 @@ RETRIEVAL_K=4
 CHUNK_SIZE=1000
 CHUNK_OVERLAP=200
 MAX_RETRIES=3
+MAX_REGENERATIONS=3
+WORKFLOW_RECURSION_LIMIT=50
 ```
 
 ## Quick Start
@@ -332,10 +334,12 @@ GENERATION_MODEL=llama3.1:70b
 Adjust retrieval behavior:
 
 ```env
-RETRIEVAL_K=4            # Number of docs to retrieve
-CHUNK_SIZE=1000         # Characters per chunk
-CHUNK_OVERLAP=200       # Overlap between chunks
-MAX_RETRIES=3           # Max query rewrite attempts
+RETRIEVAL_K=4                 # Number of docs to retrieve
+CHUNK_SIZE=1000              # Characters per chunk
+CHUNK_OVERLAP=200            # Overlap between chunks
+MAX_RETRIES=3                # Max query rewrite attempts
+MAX_REGENERATIONS=3          # Max answer regeneration attempts
+WORKFLOW_RECURSION_LIMIT=50  # Max workflow steps (prevents infinite loops)
 ```
 
 ### Web Search
@@ -500,6 +504,58 @@ The system verifies the answer is grounded in source documents:
 Verifies the answer addresses the question:
 - **Useful**: Return to user
 - **Not useful**: Rewrite query and retry
+
+## Error Recovery
+
+The system includes graceful error handling for workflow recursion limits and self-correction loops.
+
+### Self-Correction Limits
+
+To prevent infinite loops, the system enforces these limits:
+
+- **Max Query Rewrites**: 3 attempts (configurable via `MAX_RETRIES`)
+- **Max Regenerations**: 3 attempts for hallucination correction (configurable via `MAX_REGENERATIONS`)
+- **Workflow Recursion Limit**: 50 steps maximum (configurable via `WORKFLOW_RECURSION_LIMIT`)
+
+### Graceful Degradation
+
+When limits are exhausted, the system:
+
+1. **Logs detailed error information** for debugging
+2. **Returns the best available answer** with a disclaimer
+3. **Provides troubleshooting suggestions** to the user
+
+### Example Fallback Response
+
+If the workflow exhausts all attempts:
+
+```
+I apologize, but I'm having difficulty answering this question.
+The system exhausted its maximum processing steps while trying to
+generate a reliable answer. This could mean:
+
+1. The question requires information not available in the knowledge base
+2. The retrieval system is struggling to find relevant documents
+3. The answer generation is stuck in a correction loop
+
+Please try:
+- Rephrasing your question more specifically
+- Breaking complex questions into simpler parts
+- Checking if the knowledge base contains relevant information
+```
+
+### Configuration
+
+Adjust these limits in your `.env` file:
+
+```env
+# Self-Correction Limits
+MAX_RETRIES=3                # Query rewrite attempts
+MAX_REGENERATIONS=3          # Hallucination correction attempts
+WORKFLOW_RECURSION_LIMIT=50  # Maximum workflow steps
+```
+
+**Note**: With default settings (max 3 query rewrites + 3 regenerations), the system can handle up to ~42 workflow steps before hitting the recursion limit of 50, providing ample room for complex queries while preventing infinite loops.
 
 ## Troubleshooting
 
