@@ -101,11 +101,8 @@ def add_documents(documents: List[Document]) -> None:
 
         logger.info(f"Adding {len(documents)} documents to vector store...")
 
-        # Add documents with embeddings
+        # Add documents with embeddings (auto-persisted in langchain-chroma)
         vector_store.add_documents(documents)
-
-        # Persist to disk
-        vector_store.persist()
 
         logger.info(f"Successfully added {len(documents)} documents to vector store")
 

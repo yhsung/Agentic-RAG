@@ -299,7 +299,17 @@ def load(path: str, chunk_size: int, chunk_overlap: int):
                 chunk_overlap=chunk_overlap
             )
 
-            documents = loader.load_directory(path)
+            # Check if path is a file or directory
+            from pathlib import Path
+            path_obj = Path(path)
+
+            if path_obj.is_file():
+                raw_documents = loader.load_document(path)
+            else:
+                raw_documents = loader.load_documents(path)
+
+            # Chunk the documents
+            documents = loader.chunk_documents(raw_documents)
 
             progress.update(task1, completed=True)
             task2 = progress.add_task("Indexing documents...", total=None)
