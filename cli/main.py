@@ -28,6 +28,9 @@ from src.loaders.document_loader import DocumentLoader
 from src.vectorstore.chroma_store import get_vector_store, add_documents
 from config.settings import settings
 
+# Import A/B test commands
+from cli.ab_test_commands import ab_test
+
 
 # Initialize Rich console
 console = Console()
@@ -49,6 +52,10 @@ def cli():
     A production-ready RAG system with self-correction capabilities.
     """
     pass
+
+
+# Add A/B test command group
+cli.add_command(ab_test)
 
 
 @cli.command()

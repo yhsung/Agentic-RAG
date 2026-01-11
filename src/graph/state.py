@@ -27,6 +27,7 @@ class GraphState(TypedDict):
         relevance_scores: List of document relevance grades ("yes" or "no")
         hallucination_check: Result of hallucination check ("grounded" or "not_grounded")
         usefulness_check: Result of usefulness check ("useful" or "not_useful")
+        prompt_variant: The RAG prompt variant to use for answer generation (optional)
 
     Example:
         >>> state: GraphState = {
@@ -37,7 +38,8 @@ class GraphState(TypedDict):
         ...     "retry_count": 0,
         ...     "relevance_scores": [],
         ...     "hallucination_check": "",
-        ...     "usefulness_check": ""
+        ...     "usefulness_check": "",
+        ...     "prompt_variant": "baseline"
         ... }
     """
 
@@ -64,3 +66,6 @@ class GraphState(TypedDict):
 
     usefulness_check: str
     """Result of usefulness check: "useful" or "not_useful" """
+
+    prompt_variant: str
+    """The RAG prompt variant to use: "baseline", "detailed", "bullets", or "reasoning" """

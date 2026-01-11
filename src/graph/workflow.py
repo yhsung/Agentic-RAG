@@ -44,22 +44,28 @@ class AgenticRAGWorkflow:
 
     Attributes:
         workflow: The compiled LangGraph StateGraph
+        prompt_variant: The prompt variant to use for answer generation
 
     Example:
-        >>> rag = AgenticRAGWorkflow()
+        >>> rag = AgenticRAGWorkflow(prompt_variant="baseline")
         >>> result = rag.run("What is Agentic RAG?")
         >>> print(result["generation"])
         "Agentic RAG is a system that..."
     """
 
-    def __init__(self):
+    def __init__(self, prompt_variant: str = "baseline"):
         """
         Initialize and build the Agentic RAG workflow.
 
+        Args:
+            prompt_variant: Which RAG prompt variant to use for answer generation
+                           (baseline, detailed, bullets, reasoning)
+
         Creates the StateGraph, adds nodes, defines edges, and compiles
-        the graph for execution.
+        the graph for execution with the specified prompt variant.
         """
-        logger.info("Initializing Agentic RAG workflow")
+        logger.info(f"Initializing Agentic RAG workflow with variant: {prompt_variant}")
+        self.prompt_variant = prompt_variant
 
         # Build the workflow
         self.workflow = self._build_workflow()
@@ -194,7 +200,8 @@ class AgenticRAGWorkflow:
             "retry_count": 0,
             "relevance_scores": [],
             "hallucination_check": "",
-            "usefulness_check": ""
+            "usefulness_check": "",
+            "prompt_variant": self.prompt_variant
         }
 
         try:
@@ -243,7 +250,8 @@ class AgenticRAGWorkflow:
             "retry_count": 0,
             "relevance_scores": [],
             "hallucination_check": "",
-            "usefulness_check": ""
+            "usefulness_check": "",
+            "prompt_variant": self.prompt_variant
         }
 
         try:

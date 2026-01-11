@@ -88,6 +88,28 @@ class Settings(BaseSettings):
         description="Maximum web search results to retrieve"
     )
 
+    # A/B Testing Configuration
+    AB_TEST_ENABLED: bool = Field(
+        default=False,
+        description="Enable A/B testing for prompt variants"
+    )
+    AB_TEST_RESULTS_DB: str = Field(
+        default="./data/ab_test_results.db",
+        description="Path to SQLite database for A/B test results"
+    )
+    AB_TEST_DEFAULT_VARIANT: str = Field(
+        default="baseline",
+        description="Default prompt variant to use (baseline, detailed, bullets, reasoning)"
+    )
+    AB_TEST_AUTO_COLLECT: bool = Field(
+        default=True,
+        description="Automatically collect A/B test data during queries"
+    )
+    AB_TEST_SESSION_ID: str = Field(
+        default="",
+        description="Session identifier for grouping A/B test runs"
+    )
+
     # Logging Configuration
     LOG_LEVEL: str = Field(
         default="INFO",
@@ -155,4 +177,9 @@ if __name__ == "__main__":
     print(f"Log Level: {settings.LOG_LEVEL}")
     print(f"Verbose: {settings.VERBOSE}")
     print(f"Tavily API Key: {'Set' if settings.TAVILY_API_KEY else 'Not Set'}")
+    print(f"\nA/B Testing:")
+    print(f"  Enabled: {settings.AB_TEST_ENABLED}")
+    print(f"  Results DB: {settings.AB_TEST_RESULTS_DB}")
+    print(f"  Default Variant: {settings.AB_TEST_DEFAULT_VARIANT}")
+    print(f"  Auto Collect: {settings.AB_TEST_AUTO_COLLECT}")
     print("=" * 50)

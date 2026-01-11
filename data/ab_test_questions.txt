@@ -1,0 +1,75 @@
+# A/B Testing Questions for RAG System
+# These questions are designed to test different aspects of the RAG prompt variants
+# Usage: rag-cli ab-test run --variant baseline --questions-file data/ab_test_questions.txt
+
+# === Basic Factual Questions ===
+# Test baseline variant's ability to provide concise answers
+What is Agentic RAG?
+What is LangGraph?
+What is Retrieval-Augmented Generation?
+What are the main components of the RAG system?
+What is ChromaDB used for?
+
+# === Complex Explanatory Questions ===
+# Test detailed variant's ability to provide comprehensive explanations
+How does the document grading mechanism work in the Agentic RAG system?
+Explain the self-correction features implemented in this RAG system.
+What is the role of the query rewriting component?
+How does the workflow handle hallucination detection?
+Describe the complete flow of a question through the agentic RAG system.
+
+# === Multi-Part Questions ===
+# Test bullets variant's ability to organize information
+What are the main components of LangGraph and what do they do?
+What self-correction mechanisms are available and how do they work?
+What models are used in the system and what are their purposes?
+What are the different types of nodes in the workflow graph?
+What are the key differences between retrieval and generation?
+
+# === Analytical Questions ===
+# Test reasoning variant's ability to show thought process
+Why would the system choose to use web search instead of retrieved documents?
+What factors determine when query rewriting should occur?
+How does the system balance between concise answers and comprehensive ones?
+What are the trade-offs between different retrieval strategies?
+How does the system ensure answers are grounded in retrieved context?
+
+# === Edge Cases ===
+# Test how variants handle limited or conflicting information
+What happens when no relevant documents are found?
+How does the system handle contradictory information in retrieved documents?
+What occurs when a question is too vague or ambiguous?
+How does the system respond when documents don't contain enough information?
+What is the fallback mechanism when retrieval fails?
+
+# === Technical Questions ===
+# Test domain knowledge retrieval
+What embedding model is used and why?
+How does the vector store similarity search work?
+What is the purpose of the grading model vs generation model?
+How are documents chunked and why?
+What temperature settings are used for different operations?
+
+# === Workflow Questions ===
+# Test understanding of system architecture
+What are the 7 nodes in the LangGraph workflow?
+How does the conditional routing work between nodes?
+What is the maximum retry limit and why is it set?
+How does the system prevent infinite loops?
+What triggers the web search fallback mechanism?
+
+# === Performance Questions ===
+# Test understanding of system behavior
+What metrics are tracked during query execution?
+How is execution time measured?
+What factors affect the retrieval quality?
+How does the system measure document relevance?
+What is the role of session IDs in A/B testing?
+
+# === Usage Questions ===
+# Test practical understanding
+How do I load documents into the vector store?
+What command do I use to run the system interactively?
+How do I check if Ollama is running?
+What CLI commands are available for testing?
+How do I compare different prompt variants?

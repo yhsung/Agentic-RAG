@@ -15,7 +15,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 
 from config.settings import settings
-from config.prompts import RAG_PROMPT
+from config.prompts_ab import get_prompt_variant
 
 
 logger = logging.getLogger(__name__)
@@ -33,9 +33,10 @@ class AnswerGenerator:
         llm: The Ollama LLM for generation
         rag_prompt: The prompt template for RAG
         chain: The complete RAG chain
+        prompt_variant: The name of the prompt variant being used
 
     Example:
-        >>> generator = AnswerGenerator()
+        >>> generator = AnswerGenerator(prompt_variant="baseline")
         >>> question = "What is Agentic RAG?"
         >>> documents = [doc1, doc2, doc3]
         >>> answer = generator.generate(question, documents)
@@ -43,13 +44,18 @@ class AnswerGenerator:
         "Agentic RAG is a system that..."
     """
 
-    def __init__(self):
+    def __init__(self, prompt_variant: str = "baseline"):
         """
         Initialize the AnswerGenerator with Ollama LLM.
 
-        Loads the generation model from settings and builds the RAG chain.
+        Args:
+            prompt_variant: Which RAG prompt variant to use (baseline, detailed, bullets, reasoning)
+
+        Loads the generation model from settings and builds the RAG chain
+        with the specified prompt variant.
         """
         logger.info(f"Initializing AnswerGenerator with model: {settings.GENERATION_MODEL}")
+        logger.info(f"Using prompt variant: {prompt_variant}")
 
         # Initialize the LLM
         self.llm = ChatOllama(
@@ -58,8 +64,14 @@ class AnswerGenerator:
             base_url=settings.OLLAMA_BASE_URL,
         )
 
+        # Load the specified prompt variant
+        rag_prompt_text = get_prompt_variant(prompt_variant)
+
         # Create the prompt template
-        self.rag_prompt = ChatPromptTemplate.from_template(RAG_PROMPT)
+        self.rag_prompt = ChatPromptTemplate.from_template(rag_prompt_text)
+
+        # Store the variant for reference
+        self.prompt_variant = prompt_variant
 
         # Build the RAG chain
         self.chain = (

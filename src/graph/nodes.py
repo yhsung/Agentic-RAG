@@ -98,8 +98,9 @@ def generate(state: GraphState) -> dict:
         }
 
     try:
-        # Initialize generator
-        generator = AnswerGenerator()
+        # Initialize generator with prompt variant from state
+        prompt_variant = state.get("prompt_variant", "baseline")
+        generator = AnswerGenerator(prompt_variant=prompt_variant)
 
         # Generate answer
         answer = generator.generate(
