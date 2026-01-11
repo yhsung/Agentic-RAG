@@ -25,7 +25,7 @@ pip install -r requirements.txt
 cp .env.example .env
 
 # Pull required Ollama models
-ollama pull llama3.2
+ollama pull qwen3:30b
 ollama pull nomic-embed-text
 
 # Verify Ollama is running
@@ -153,6 +153,21 @@ All configuration is managed through Pydantic Settings (`config/settings.py`):
 - Load from `.env` file
 - Access via `from config.settings import settings`
 
+**Auto-Detection Feature**:
+The system automatically detects containerized environments using environment variables:
+- **DevContainer**: Uses `http://host.docker.internal:11434` when `DEVCONTAINER=true` or `CODESPACES=true`
+- **Local Development**: Uses `http://localhost:11434` by default
+- **Override**: Set `OLLAMA_BASE_URL` environment variable to force a specific URL
+
+To enable DevContainer mode, set the environment variable:
+```bash
+# In your DevContainer configuration or docker-compose.yml
+environment:
+  - DEVCONTAINER=true
+```
+
+This auto-detection eliminates manual configuration when switching between local and containerized development.
+
 **Key Settings**:
 - `GENERATION_MODEL`, `EMBEDDING_MODEL`, `GRADING_MODEL` - Ollama model names (swappable)
 - `RETRIEVAL_K` - Number of docs to retrieve (default: 4)
@@ -178,12 +193,12 @@ All prompts are in `config/prompts.py`. Each prompt:
 
 The system uses **three types of models**:
 1. **Embedding**: `nomic-embed-text` (1024 dims, optimized for retrieval)
-2. **Generation**: `llama3.2` (3B, fast and capable)
-3. **Grading**: `llama3.2` (same model, but could use smaller for efficiency)
+2. **Generation**: `qwen3:30b` (3B, fast and capable)
+3. **Grading**: `qwen3:30b` (same model, but could use smaller for efficiency)
 
 Models are easily swappable via `.env`:
 ```env
-GENERATION_MODEL=llama3.2   # Fast (recommended)
+GENERATION_MODEL=qwen3:30b   # Fast (recommended)
 GENERATION_MODEL=mistral    # Better reasoning
 GENERATION_MODEL=llama3.1   # Most capable (slower, more RAM)
 ```
@@ -291,7 +306,7 @@ ollama serve
 ### Missing Models
 ```bash
 # Pull required models
-ollama pull llama3.2
+ollama pull qwen3:30b
 ollama pull nomic-embed-text
 ```
 

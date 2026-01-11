@@ -5,10 +5,57 @@ This module centralizes all configuration for the Agentic RAG system,
 making it easy to swap models, adjust parameters, and manage environment variables.
 """
 
+import os
 from pathlib import Path
 from typing import Optional
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def get_ollama_base_url() -> str:
+    """
+    Get Ollama base URL with auto-detection for DevContainer.
+
+    Automatically detects if running in a container and returns
+    the appropriate URL:
+    - Container: http://host.docker.internal:11434
+    - Local: http://localhost:11434
+
+    Detection methods (in order of reliability):
+    1. Environment variable OLLAMA_BASE_URL (explicit override)
+    2. File system checks (/.dockerenv or /proc/1/cgroup)
+
+    Returns:
+        str: Ollama base URL
+
+    Example:
+        >>> url = get_ollama_base_url()
+        >>> assert "localhost" in url or "host.docker.internal" in url
+    """
+    # Check environment variable OLLAMA_BASE_URL first (explicit override)
+    if os.getenv("OLLAMA_BASE_URL"):
+        return os.getenv("OLLAMA_BASE_URL")
+
+    # Check for container indicators using file system
+    # /.dockerenv is created by Docker/DevContainer
+    # /proc/1/cgroup contains container info in Linux containers
+    if Path("/.dockerenv").exists():
+        return "http://host.docker.internal:11434"
+
+    # Check /proc/1/cgroup for container indicators (more reliable on Linux)
+    cgroup_path = Path("/proc/1/cgroup")
+    if cgroup_path.exists():
+        try:
+            cgroup_content = cgroup_path.read_text()
+            # Check if running in a container (docker, kubepods, etc.)
+            if any(keyword in cgroup_content.lower() for keyword in ["docker", "kubepods", "containerd"]):
+                return "http://host.docker.internal:11434"
+        except Exception:
+            # If we can't read cgroup, continue with default
+            pass
+
+    # Default to localhost for local development
+    return "http://localhost:11434"
 
 
 class Settings(BaseSettings):
@@ -24,8 +71,8 @@ class Settings(BaseSettings):
 
     # Ollama Configuration
     OLLAMA_BASE_URL: str = Field(
-        default="http://localhost:11434",
-        description="Base URL for Ollama API"
+        default_factory=get_ollama_base_url,
+        description="Base URL for Ollama API (auto-detects DevContainer)"
     )
     EMBEDDING_MODEL: str = Field(
         default="nomic-embed-text",
