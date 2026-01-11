@@ -356,16 +356,33 @@ def status():
 
         table.add_row("Ollama", ollama_status, ollama_details)
 
-        # Vector store status
+        # Vector store status with detailed statistics
         chroma_path = settings.get_chroma_persist_path()
         if chroma_path.exists():
-            chroma_status = "✅ Initialized"
-            chroma_details = f"{chroma_path}"
+            try:
+                from src.vectorstore.chroma_store import get_collection_stats
+                stats = get_collection_stats()
+                doc_count = stats["total_chunks"]
+                unique_sources = stats["unique_sources"]
+                sources = stats["sources"]
+                chroma_status = "✅ Initialized"
+                chroma_details = f"{chroma_path}"
+            except Exception as e:
+                doc_count = 0
+                unique_sources = 0
+                sources = []
+                chroma_status = "⚠️  Error"
+                chroma_details = f"Error: {str(e)[:50]}"
         else:
+            doc_count = 0
+            unique_sources = 0
+            sources = []
             chroma_status = "⚠️  Not Found"
-            chroma_details = "Run: python scripts/load_documents.py"
+            chroma_details = "Run: python cli/main.py load <path>"
 
         table.add_row("ChromaDB", chroma_status, chroma_details)
+        table.add_row("Document Chunks", "📊 Count", str(doc_count))
+        table.add_row("Source Documents", "📄 Count", str(unique_sources))
 
         # Models
         table.add_row("Generation Model", "✅ Configured", settings.GENERATION_MODEL)
@@ -411,6 +428,35 @@ def status():
             console.print(f"    • {node}")
 
         console.print(f"  Edges: {len(info['edges'])}")
+
+        # Document collection summary
+        if doc_count > 0:
+            console.print("\n[bold]Document Collection:[/bold]")
+            console.print(f"  Total Chunks: {doc_count}")
+            console.print(f"  Source Documents: {unique_sources}")
+            console.print(f"  Collection: {settings.CHROMA_COLLECTION}")
+            console.print(f"  Embedding Model: {settings.EMBEDDING_MODEL}")
+            console.print(f"  Persist Path: {chroma_path}")
+
+            # Show source files (limit to first 10)
+            if sources:
+                console.print("\n  [dim]Source Files:[/dim]")
+                from pathlib import Path
+                for i, source in enumerate(sources[:10], 1):
+                    # Show just the filename for brevity
+                    filename = Path(source).name
+                    console.print(f"    {i}. {filename}")
+
+                if len(sources) > 10:
+                    console.print(f"    ... and {len(sources) - 10} more")
+
+            # Show usage hint
+            console.print("\n[dim]💡 Tip: Load more documents with:[/dim]")
+            console.print("[dim]   python cli/main.py load <file_or_directory>[/dim]")
+        else:
+            console.print("\n[yellow]⚠️  No documents loaded yet[/yellow]")
+            console.print("[dim]Load documents with:[/dim]")
+            console.print("[dim]   python cli/main.py load <file_or_directory>[/dim]")
 
     except Exception as e:
         console.print(f"[red]✗[/red] Error checking status: {e}")

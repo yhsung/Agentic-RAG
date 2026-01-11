@@ -146,9 +146,15 @@ python cli/main.py status
 This displays:
 - ✅ Ollama connection and models
 - ✅ ChromaDB initialization status
-- ✅ Vector store document count
+- ✅ **Document chunk count** (e.g., 74 chunks from 6 source files)
+- ✅ **Source document count** (unique files loaded)
 - ✅ Self-correction mechanisms status (including web search)
 - ✅ Workflow graph structure (7 nodes, 11 edges)
+- ✅ Document collection details:
+  - Total chunks and source documents
+  - Collection name and embedding model
+  - Persist directory path
+  - **List of loaded source files** (first 10 shown)
 
 ### 3. Run the CLI
 
@@ -399,6 +405,8 @@ python cli/main.py status
 Shows:
   ✅ Ollama connection and base URL (auto-detects DevContainer)
   ✅ ChromaDB initialization and path
+  ✅ **Document chunk count** (real-time from vector store)
+  ✅ **Source document count** (unique files)
   ✅ Generation, Embedding, and Grading models
   ✅ Retrieval parameters (k, chunk size, max retries)
   ✅ Self-correction mechanisms status:
@@ -408,6 +416,12 @@ Shows:
      - Answer Usefulness Check
      - Web Search Fallback (dynamically checked)
   ✅ Workflow graph structure (7 nodes, 11 edges)
+  ✅ Document collection summary:
+     - Total chunks and source documents
+     - Collection name and embedding model
+     - Persist path
+     - List of loaded source files (up to 10)
+     - Helpful loading tips
 ```
 
 ### A/B Testing (Prompt Variants)

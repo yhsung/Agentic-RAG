@@ -230,6 +230,60 @@ def get_collection_count() -> int:
         raise
 
 
+def get_collection_stats() -> dict:
+    """
+    Get detailed statistics about the document collection.
+
+    Returns:
+        Dictionary containing:
+            - total_chunks: Total number of document chunks
+            - unique_sources: Number of unique source documents
+            - sources: List of unique source file paths
+
+    Raises:
+        Exception: If stats retrieval fails
+    """
+    try:
+        vector_store = get_vector_store()
+
+        # Get total count
+        total_chunks = vector_store._collection.count()
+
+        # Get all documents to analyze sources
+        if total_chunks > 0:
+            # Get all metadata
+            results = vector_store._collection.get(
+                include=["metadatas"]
+            )
+
+            # Extract unique sources
+            sources = set()
+            if results and results.get("metadatas"):
+                for metadata in results["metadatas"]:
+                    if metadata and "source" in metadata:
+                        sources.add(metadata["source"])
+
+            unique_sources = len(sources)
+            source_list = sorted(list(sources))
+        else:
+            unique_sources = 0
+            source_list = []
+
+        stats = {
+            "total_chunks": total_chunks,
+            "unique_sources": unique_sources,
+            "sources": source_list
+        }
+
+        logger.debug(f"Collection stats: {total_chunks} chunks from {unique_sources} sources")
+
+        return stats
+
+    except Exception as e:
+        logger.error(f"Failed to get collection stats: {e}")
+        raise
+
+
 if __name__ == "__main__":
     """Test the vector store functionality."""
     print("Testing ChromaDB vector store...")
