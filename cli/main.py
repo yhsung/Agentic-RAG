@@ -381,12 +381,21 @@ def status():
 
         # Self-correction mechanisms
         console.print("\n[bold]Self-Correction Mechanisms:[/bold]")
+
+        # Check web search availability
+        try:
+            from src.agents.web_searcher import WebSearcher
+            searcher = WebSearcher()
+            web_search_status = "✅ Active" if searcher.is_available() else "⚠️  Unavailable (no API key or packages)"
+        except Exception:
+            web_search_status = "⚠️  Unavailable"
+
         mechanisms = [
             ("Document Relevance Grading", "✅ Active"),
             ("Query Rewriting", "✅ Active"),
             ("Hallucination Detection", "✅ Active"),
             ("Answer Usefulness Check", "✅ Active"),
-            ("Web Search Fallback", "⏸️  TODO"),
+            ("Web Search Fallback", web_search_status),
         ]
 
         for mechanism, status in mechanisms:

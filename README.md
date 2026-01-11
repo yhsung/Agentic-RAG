@@ -71,8 +71,8 @@ pip install -r requirements.txt
 Install Ollama from [ollama.ai](https://ollama.ai/), then pull the required models:
 
 ```bash
-# Pull the generation model (3B parameters)
-ollama pull llama3.2
+# Pull the generation model (30B parameters, recommended)
+ollama pull qwen3:30b
 
 # Pull the embedding model (1024 dimensions)
 ollama pull nomic-embed-text
@@ -80,7 +80,11 @@ ollama pull nomic-embed-text
 
 Verify Ollama is running:
 ```bash
+# For local development
 curl http://localhost:11434/api/tags
+
+# For DevContainer/Codespaces (auto-detected)
+curl http://host.docker.internal:11434/api/tags
 ```
 
 ### 5. Configure environment
@@ -93,40 +97,58 @@ cp .env.example .env
 
 Edit `.env` to set your preferences:
 ```env
-OLLAMA_BASE_URL=http://localhost:11434
-GENERATION_MODEL=llama3.2
+# Ollama Configuration (auto-detects DevContainer/Codespaces)
+OLLAMA_BASE_URL=http://localhost:11434  # Auto-switches to host.docker.internal in containers
+GENERATION_MODEL=qwen3:30b
+GRADING_MODEL=qwen3:30b
 EMBEDDING_MODEL=nomic-embed-text
-TAVILY_API_KEY=your_key_here  # Optional
+
+# Web Search (Optional - DuckDuckGo works without key)
+TAVILY_API_KEY=your_key_here  # Get free key at tavily.com (1000 requests/month)
+
+# Retrieval Settings
+RETRIEVAL_K=4
+CHUNK_SIZE=1000
+CHUNK_OVERLAP=200
+MAX_RETRIES=3
 ```
 
 ## Quick Start
 
 ### 1. Load Documents
 
-Add your documents to the vector store:
+Add your documents to the vector store (supports both files and directories):
 
 ```bash
-python cli/main.py load path/to/your/documents
+# Load a single file
+python cli/main.py load document.pdf
+
+# Load all documents from a directory
+python cli/main.py load path/to/documents/
+
+# With custom chunking
+python cli/main.py load docs/ --chunk-size 1500 --chunk-overlap 300
 ```
 
 Supported formats:
 - PDF (`.pdf`)
-- Markdown (`.md`)
+- Markdown (`.md`, `.markdown`)
 - Plain text (`.txt`)
-
-Or use the script directly:
-
-```bash
-python scripts/load_documents.py path/to/your/documents
-```
 
 ### 2. Check System Status
 
-Verify everything is working:
+Verify all components are working:
 
 ```bash
 python cli/main.py status
 ```
+
+This displays:
+- ✅ Ollama connection and models
+- ✅ ChromaDB initialization status
+- ✅ Vector store document count
+- ✅ Self-correction mechanisms status (including web search)
+- ✅ Workflow graph structure (7 nodes, 11 edges)
 
 ### 3. Run the CLI
 
@@ -286,14 +308,17 @@ Agentic-RAG/
 You can swap models by editing `.env`:
 
 ```env
-# Fast, lightweight (recommended for most use cases)
+# Recommended: Qwen 30B (excellent quality, fast on modern hardware)
+GENERATION_MODEL=qwen3:30b
+
+# Lightweight: Llama 3.2 (3B, faster but less capable)
 GENERATION_MODEL=llama3.2
 
-# Better reasoning (slower)
+# Alternative: Mistral (7B, good balance)
 GENERATION_MODEL=mistral
 
-# Most capable (requires more RAM)
-GENERATION_MODEL=llama3.1
+# High-end: Llama 3.1 (70B, best quality, requires 64GB+ RAM)
+GENERATION_MODEL=llama3.1:70b
 ```
 
 ### Retrieval Parameters
@@ -309,39 +334,61 @@ MAX_RETRIES=3           # Max query rewrite attempts
 
 ### Web Search
 
-Enable web search fallback:
+The system includes **intelligent web search fallback** that automatically triggers when local documents don't contain relevant information.
 
-1. Get a free API key from [Tavily](https://tavily.com/) (1,000 requests/month free)
-2. Add to `.env`:
-   ```env
-   TAVILY_API_KEY=your_key_here
-   ```
+**Two search engines supported:**
 
-Alternatively, use DuckDuckGo (no API key required, but lower quality results).
+1. **Tavily API** (Primary - Recommended)
+   - Get a free API key from [Tavily](https://tavily.com/) (1,000 requests/month free)
+   - Add to `.env`:
+     ```env
+     TAVILY_API_KEY=your_key_here
+     ```
+   - Higher quality results, optimized for AI applications
+
+2. **DuckDuckGo** (Fallback)
+   - No API key required
+   - Works out of the box
+   - Automatically used if Tavily is unavailable
+
+**How it works:**
+- System retrieves documents from local vector store
+- Grades document relevance
+- If < 50% documents are relevant → triggers web search
+- Web results are added to context for generation
 
 ## CLI Commands
 
 ### Query Mode (Interactive)
 
 ```bash
-python cli/main.py query [OPTIONS]
+python cli/main.py query [OPTIONS] [QUESTION]
 
 Options:
-  --verbose, -v  Show detailed execution flow
-  --model, -m    Specify Ollama model to use
+  --verbose, -v  Show detailed execution flow with node-by-node progress
+  --stream, -s   Stream execution in real-time
+  QUESTION       Optional: Ask a single question and exit
 
-Example:
-  python cli/main.py query --verbose --model mistral
+Examples:
+  python cli/main.py query                           # Interactive mode
+  python cli/main.py query --verbose                 # Interactive with details
+  python cli/main.py query "What is LangGraph?"      # Single question
+  python cli/main.py query --verbose "How does RAG work?"  # Single with details
 ```
 
 ### Load Documents
 
 ```bash
-python cli/main.py load <file_or_directory>
+python cli/main.py load PATH [OPTIONS]
+
+Options:
+  --chunk-size INTEGER     Character size for chunks (default: 1000)
+  --chunk-overlap INTEGER  Character overlap between chunks (default: 200)
 
 Examples:
-  python cli/main.py load docs/
-  python cli/main.py load research_paper.pdf
+  python cli/main.py load docs/                      # Load directory
+  python cli/main.py load research_paper.pdf         # Load single file
+  python cli/main.py load docs/ --chunk-size 1500    # Custom chunking
 ```
 
 ### System Status
@@ -350,11 +397,42 @@ Examples:
 python cli/main.py status
 
 Shows:
-  ✓ Ollama connection
-  ✓ ChromaDB status
-  ✓ Document count
-  ✓ Available models
+  ✅ Ollama connection and base URL (auto-detects DevContainer)
+  ✅ ChromaDB initialization and path
+  ✅ Generation, Embedding, and Grading models
+  ✅ Retrieval parameters (k, chunk size, max retries)
+  ✅ Self-correction mechanisms status:
+     - Document Relevance Grading
+     - Query Rewriting
+     - Hallucination Detection
+     - Answer Usefulness Check
+     - Web Search Fallback (dynamically checked)
+  ✅ Workflow graph structure (7 nodes, 11 edges)
 ```
+
+### A/B Testing (Prompt Variants)
+
+Test different prompt strategies to optimize answer quality:
+
+```bash
+# Run A/B test with a specific prompt variant
+python cli/main.py ab-test run baseline
+python cli/main.py ab-test run detailed
+python cli/main.py ab-test run bullets
+python cli/main.py ab-test run reasoning
+
+# Compare results across variants
+python cli/main.py ab-test compare
+
+# View detailed statistics
+python cli/main.py ab-test stats
+```
+
+Available prompt variants:
+- **baseline**: Concise, direct answers (3 sentences max)
+- **detailed**: Comprehensive explanations with context
+- **bullets**: Structured bullet-point format
+- **reasoning**: Step-by-step reasoning before answer
 
 ## Testing
 
@@ -445,9 +523,23 @@ chmod 755 data/chroma_db
 ### Slow Generation
 
 If generation is slow, consider:
-1. Using a smaller model: `llama3.2` (3B) instead of `llama3.1` (8B)
+1. Using a smaller model: `llama3.2` (3B) instead of `qwen3:30b` (30B)
 2. Reducing `RETRIEVAL_K` to retrieve fewer documents
-3. Ensuring Ollama has sufficient RAM allocated
+3. Ensuring Ollama has sufficient RAM allocated (recommended: 16GB+ for qwen3:30b)
+4. Disabling web search if not needed by not setting `TAVILY_API_KEY`
+
+### Deprecation Warnings
+
+If you see warnings about `langchain_community.embeddings` or `langchain_community.vectorstores`:
+
+```bash
+# Update to latest packages
+pip install -U langchain-chroma langchain-ollama
+```
+
+The system now uses:
+- `langchain_ollama.OllamaEmbeddings` (instead of langchain_community)
+- `langchain_chroma.Chroma` (instead of langchain_community)
 
 ## Development
 
@@ -471,16 +563,29 @@ NEW_PROMPT = """Your prompt template here with {variables}"""
 python scripts/test_components.py --component grader
 ```
 
-## Roadmap
+## Features Status
 
+### ✅ Completed
+- Document relevance grading with LLM
+- Query rewriting for improved retrieval
+- Hallucination detection and correction
+- Answer usefulness verification
+- **Web search fallback (Tavily + DuckDuckGo)**
+- A/B testing system for prompt variants
+- CLI interface with Rich formatting
+- Comprehensive test suite
+- DevContainer/Codespaces auto-detection
+- LangChain package migration (chroma, ollama)
+
+### 🚧 Roadmap
 - [ ] Streamlit web interface
 - [ ] Multi-modal support (images, tables)
-- [ ] Streaming responses
 - [ ] Session memory and conversation context
 - [ ] Docker containerization
-- [ ] FastAPI endpoints
+- [ ] FastAPI REST endpoints
 - [ ] Evaluation framework with metrics
 - [ ] Fine-tuned Ollama models
+- [ ] Conversation history persistence
 
 ## Contributing
 
