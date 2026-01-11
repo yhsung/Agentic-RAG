@@ -103,7 +103,7 @@ class TestHappyPath:
         assert len(result["generation"]) > 0
         assert result["hallucination_check"] == "grounded"
         assert result["usefulness_check"] == "useful"
-        assert result["web_search"] == "No"
+        assert result["web_search_needed"] == "No"
 
 
 class TestQueryRewritePath:

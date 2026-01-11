@@ -170,7 +170,7 @@ def run(variant: str, questions_file: Optional[str], count: int, session_id: Opt
                 "user_feedback": feedback,
                 "documents_retrieved": len(result.get("documents", [])),
                 "relevant_documents": sum(1 for s in result.get("relevance_scores", []) if s == "yes"),
-                "web_search_used": result.get("web_search") == "Yes",
+                "web_search_used": result.get("web_search_needed") == "Yes",
                 "query_retries": result.get("retry_count", 0),
                 "hallucination_check": result.get("hallucination_check"),
                 "usefulness_check": result.get("usefulness_check"),

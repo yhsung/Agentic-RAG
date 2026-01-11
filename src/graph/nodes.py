@@ -246,7 +246,7 @@ def web_search(state: GraphState) -> dict:
         state: Current graph state containing question
 
     Returns:
-        Dictionary with updated documents and web_search fields
+        Dictionary with updated documents and web_search_needed fields
 
     Raises:
         Exception: If web search fails and no fallback is available
@@ -278,7 +278,7 @@ def web_search(state: GraphState) -> dict:
             logger.warning("  2. Or install duckduckgo-search: pip install duckduckgo-search")
             return {
                 "documents": [],
-                "web_search": "No"
+                "web_search_needed": "No"
             }
 
         # Perform web search
@@ -299,7 +299,7 @@ def web_search(state: GraphState) -> dict:
 
         return {
             "documents": documents,
-            "web_search": "Yes"
+            "web_search_needed": "Yes"
         }
 
     except Exception as e:
@@ -307,7 +307,7 @@ def web_search(state: GraphState) -> dict:
         # Return empty documents on failure - system can degrade gracefully
         return {
             "documents": [],
-            "web_search": "No"
+            "web_search_needed": "No"
         }
 
 
@@ -473,10 +473,13 @@ if __name__ == "__main__":
     sample_state: GraphState = {
         "question": "What is Agentic RAG?",
         "generation": "",
-        "web_search": "No",
+        "web_search_needed": "No",
         "documents": [],
         "retry_count": 0,
-        "relevance_scores": []
+        "relevance_scores": [],
+        "hallucination_check": "",
+        "usefulness_check": "",
+        "prompt_variant": "baseline"
     }
 
     print("=" * 80)

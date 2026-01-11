@@ -21,7 +21,7 @@ class GraphState(TypedDict):
     Attributes:
         question: The user's original question/query
         generation: The LLM-generated answer
-        web_search: "Yes" or "No" flag indicating if web search was performed
+        web_search_needed: "Yes" or "No" flag indicating if web search is needed
         documents: List of retrieved documents (chunks) from vector store
         retry_count: Number of query rewrite attempts (max 3 to prevent infinite loops)
         relevance_scores: List of document relevance grades ("yes" or "no")
@@ -33,7 +33,7 @@ class GraphState(TypedDict):
         >>> state: GraphState = {
         ...     "question": "What is Agentic RAG?",
         ...     "generation": "",
-        ...     "web_search": "No",
+        ...     "web_search_needed": "No",
         ...     "documents": [],
         ...     "retry_count": 0,
         ...     "relevance_scores": [],
@@ -49,8 +49,8 @@ class GraphState(TypedDict):
     generation: str
     """The LLM-generated answer (empty until generate node runs)"""
 
-    web_search: str
-    """Flag indicating if web search was performed: "Yes" or "No" """
+    web_search_needed: str
+    """Flag indicating if web search is needed: "Yes" or "No" """
 
     documents: List[Document]
     """List of retrieved documents (chunks) from vector store or web search"""

@@ -195,7 +195,7 @@ class AgenticRAGWorkflow:
         initial_state: GraphState = {
             "question": question,
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [],
             "retry_count": 0,
             "relevance_scores": [],
@@ -245,7 +245,7 @@ class AgenticRAGWorkflow:
         initial_state: GraphState = {
             "question": question,
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [],
             "retry_count": 0,
             "relevance_scores": [],

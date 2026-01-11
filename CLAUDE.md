@@ -296,7 +296,10 @@ Chunking strategy (in `src/loaders/document_loader.py`):
 
 ### Ollama Connection Issues
 ```bash
-# Verify Ollama is running
+# Verify Ollama is running if environment is in container
+curl http://host.docker.internal:11434/api/tags
+
+# Verify Ollama is running if is in host environment
 curl http://localhost:11434/api/tags
 
 # If not running, start it

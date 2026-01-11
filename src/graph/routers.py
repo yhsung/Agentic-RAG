@@ -297,7 +297,7 @@ if __name__ == "__main__":
     state_with_relevant = {
         "question": "What is Agentic RAG?",
         "generation": "",
-        "web_search": "No",
+        "web_search_needed": "No",
         "documents": [None] * 3,
         "retry_count": 0,
         "relevance_scores": ["yes", "no", "yes"]
@@ -312,7 +312,7 @@ if __name__ == "__main__":
     state_without_relevant = {
         "question": "What is Agentic RAG?",
         "generation": "",
-        "web_search": "No",
+        "web_search_needed": "No",
         "documents": [None] * 3,
         "retry_count": 0,
         "relevance_scores": ["no", "no", "no"]
@@ -328,7 +328,7 @@ if __name__ == "__main__":
         state = {
             "question": "",
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [],
             "retry_count": retry_count,
             "relevance_scores": []

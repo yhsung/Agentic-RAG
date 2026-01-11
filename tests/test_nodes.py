@@ -44,7 +44,7 @@ class TestRetrieveNode:
         state: GraphState = {
             "question": "What is LangGraph?",
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [],
             "retry_count": 0,
             "relevance_scores": [],
@@ -68,7 +68,7 @@ class TestRetrieveNode:
         state: GraphState = {
             "question": "",
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [],
             "retry_count": 0,
             "relevance_scores": [],
@@ -102,7 +102,7 @@ class TestGradeDocumentsNode:
         state: GraphState = {
             "question": "What is LangGraph?",
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": documents,
             "retry_count": 0,
             "relevance_scores": [],
@@ -135,7 +135,7 @@ class TestGradeDocumentsNode:
         state: GraphState = {
             "question": "What is LangGraph?",
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": documents,
             "retry_count": 0,
             "relevance_scores": [],
@@ -165,7 +165,7 @@ class TestGenerateNode:
         state: GraphState = {
             "question": "What is LangGraph?",
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [
                 Document(page_content="LangGraph content", metadata={"source": "test1"})
             ],
@@ -192,7 +192,7 @@ class TestGenerateNode:
         state: GraphState = {
             "question": "What is LangGraph?",
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [],
             "retry_count": 0,
             "relevance_scores": [],
@@ -220,7 +220,7 @@ class TestTransformQueryNode:
         state: GraphState = {
             "question": "What is LangGraph?",
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [],
             "retry_count": 0,
             "relevance_scores": [],
@@ -246,7 +246,7 @@ class TestTransformQueryNode:
         state: GraphState = {
             "question": "Original question",
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [],
             "retry_count": 2,  # Already tried twice
             "relevance_scores": [],
@@ -278,7 +278,7 @@ class TestWebSearchNode:
         state: GraphState = {
             "question": "Latest developments in AI",
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [],
             "retry_count": 0,
             "relevance_scores": [],
@@ -290,8 +290,8 @@ class TestWebSearchNode:
 
         # Verify
         assert "documents" in result
-        assert "web_search" in result
-        assert result["web_search"] == "Yes"
+        assert "web_search_needed" in result
+        assert result["web_search_needed"] == "Yes"
 
     @patch('src.agents.web_searcher.WebSearcher')
     def test_web_search_unavailable(self, mock_searcher_class):
@@ -304,7 +304,7 @@ class TestWebSearchNode:
         state: GraphState = {
             "question": "Test question",
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [],
             "retry_count": 0,
             "relevance_scores": [],
@@ -316,7 +316,7 @@ class TestWebSearchNode:
 
         # Should return empty documents and No web_search
         assert result["documents"] == []
-        assert result["web_search"] == "No"
+        assert result["web_search_needed"] == "No"
 
 
 class TestCheckHallucinationNode:
@@ -333,7 +333,7 @@ class TestCheckHallucinationNode:
         state: GraphState = {
             "question": "What is LangGraph?",
             "generation": "LangGraph is a library for agents.",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [
                 Document(page_content="LangGraph is a library.", metadata={"source": "test1"})
             ],
@@ -359,7 +359,7 @@ class TestCheckHallucinationNode:
         state: GraphState = {
             "question": "What is LangGraph?",
             "generation": "LangGraph was created by aliens.",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [
                 Document(page_content="LangGraph is a library.", metadata={"source": "test1"})
             ],
@@ -389,7 +389,7 @@ class TestCheckUsefulnessNode:
         state: GraphState = {
             "question": "What is LangGraph?",
             "generation": "LangGraph is a library for building stateful agent applications.",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [],
             "retry_count": 0,
             "relevance_scores": [],
@@ -413,7 +413,7 @@ class TestCheckUsefulnessNode:
         state: GraphState = {
             "question": "What is LangGraph?",
             "generation": "I don't know.",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [],
             "retry_count": 0,
             "relevance_scores": [],
@@ -449,7 +449,7 @@ class TestNodeIntegration:
         state: GraphState = {
             "question": "What is LangGraph?",
             "generation": "",
-            "web_search": "No",
+            "web_search_needed": "No",
             "documents": [],
             "retry_count": 0,
             "relevance_scores": [],
