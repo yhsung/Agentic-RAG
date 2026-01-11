@@ -430,10 +430,17 @@ Test different prompt strategies to optimize answer quality:
 
 ```bash
 # Run A/B test with a specific prompt variant
-python cli/main.py ab-test run baseline
-python cli/main.py ab-test run detailed
-python cli/main.py ab-test run bullets
-python cli/main.py ab-test run reasoning
+python cli/main.py ab-test run --variant baseline
+python cli/main.py ab-test run --variant detailed
+python cli/main.py ab-test run --variant bullets
+python cli/main.py ab-test run --variant reasoning
+
+# Or use short flag -v
+python cli/main.py ab-test run -v baseline
+
+# With additional options
+python cli/main.py ab-test run --variant baseline --count 5
+python cli/main.py ab-test run -v detailed --questions-file questions.txt
 
 # Compare results across variants
 python cli/main.py ab-test compare
