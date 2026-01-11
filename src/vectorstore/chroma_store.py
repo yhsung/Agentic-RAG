@@ -8,8 +8,8 @@ and retrieval. Implements a singleton pattern for thread-safe access.
 import logging
 from typing import List, Optional
 
-from langchain_community.embeddings import OllamaEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_ollama import OllamaEmbeddings
+from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_core.vectorstores import VectorStoreRetriever
 
