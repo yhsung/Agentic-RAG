@@ -141,8 +141,7 @@ def run(variant: str, questions_file: Optional[str], count: int, session_id: Opt
             # Collect user feedback
             console.print(f"\n[bold yellow]Please rate this answer:[/bold yellow]")
             rating_input = console.input(
-                "  Rating (1-5, or 0 to skip): ",
-                show_default=False
+                "  Rating (1-5, or 0 to skip): "
             )
             try:
                 rating = int(rating_input) if rating_input else None
@@ -156,8 +155,7 @@ def run(variant: str, questions_file: Optional[str], count: int, session_id: Opt
             feedback = None
             if rating:
                 feedback_input = console.input(
-                    "  Additional feedback (optional, press Enter to skip): ",
-                    show_default=False
+                    "  Additional feedback (optional, press Enter to skip): "
                 )
                 feedback = feedback_input or None
 
